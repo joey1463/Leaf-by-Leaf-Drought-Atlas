@@ -1,0 +1,246 @@
+library(Seurat)
+library(Matrix)
+library(stringr)
+library(DoubletFinder)
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/P1P3_leaf/L1_P1P3_demultiplexed.RData")
+CI_P1P3<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/P2P4_leaf/L1_P2P4_demultiplexed.RData")
+CI_P2P4<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/P5P7_leaf/L1_P5P7_demultiplexed.RData")
+CI_P5P7<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/P6P8_leaf/L1_P6P8_demultiplexed.RData")
+CI_P6P8<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/P9S1_leaf/L1_P9S1_demultiplexed.RData")
+CI_P9S1<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/S2S3_leaf/L1_S2S3_demultiplexed.RData")
+CI_S2S3<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/S4S5_leaf/L1_S4S5_demultiplexed.RData")
+CI_S4S5<-full_matrix
+
+load("/gale/netapp/home/jswift/analysis/CI_Drought/S6S7_leaf/L1_S6S7_demultiplexed.RData")
+CI_S6S7<-full_matrix
+
+load("L1_plant_combined_rosette_rep1_demultiplex.RData")
+CI_D2_D3<-full_matrix[ , substring(colnames(full_matrix),1,3) %in% c('D02','D03')]
+CI_D1_D4<-full_matrix[ , substring(colnames(full_matrix),1,3) %in% c('D01','D04')]
+CI_D5_D6<-full_matrix[ , substring(colnames(full_matrix),1,3) %in% c('D05','D06')]
+CI_D9_D0<-full_matrix[ , substring(colnames(full_matrix),1,3) %in% c('D09','D00')]
+CI_D7_D8<-full_matrix[ , substring(colnames(full_matrix),1,3) %in% c('D07','D08')]
+remove(full_matrix)
+
+
+Read_CI<-function(path){
+  DayX_Drought <- CreateSeuratObject(counts = path, min.cells = 5, min.features = 100)
+  DayX_Drought$Day <- "CI"
+  DayX_Drought[["percent.mt"]] <- PercentageFeatureSet(object = DayX_Drought, pattern = "ATMG")
+  DayX_Drought[["percent.ch"]] <- PercentageFeatureSet(object = DayX_Drought, pattern = "ATCG")
+  DayX_Drought <- subset(x = DayX_Drought, nFeature_RNA > 450 & nFeature_RNA < 3000 & percent.mt < 8 & percent.ch < 50)
+  DayX_Drought <- DayX_Drought[-grep("^ATCG", row.names(DayX_Drought)),]
+  DayX_Drought <- DayX_Drought[-grep("^ATMG", row.names(DayX_Drought)),]
+  DayX_Drought <- NormalizeData(object = DayX_Drought, verbose = FALSE)
+  DayX_Drought <- FindVariableFeatures(object = DayX_Drought, selection.method = "vst", nfeatures = 2000) 
+  DayX_Drought <- ScaleData(object = DayX_Drought ,verbose = TRUE)
+  DayX_Drought}
+
+CI_P1P3<-Read_CI(CI_P1P3)
+CI_P2P4<-Read_CI(CI_P2P4)
+CI_P5P7<-Read_CI(CI_P5P7)
+CI_P6P8<-Read_CI(CI_P6P8)
+CI_P9S1<-Read_CI(CI_P9S1)
+CI_S2S3<-Read_CI(CI_S2S3)
+CI_S4S5<-Read_CI(CI_S4S5)
+CI_S6S7<-Read_CI(CI_S6S7)
+
+CI_D2_D3<-Read_CI(CI_D2_D3)
+CI_D1_D4<-Read_CI(CI_D1_D4)
+CI_D5_D6<-Read_CI(CI_D5_D6)
+CI_D9_D0<-Read_CI(CI_D9_D0)
+CI_D7_D8<-Read_CI(CI_D7_D8)
+
+# Report Sizes
+CI_P1P3
+CI_P2P4
+CI_P5P7
+CI_P6P8
+CI_P9S1
+CI_S2S3
+CI_S4S5
+CI_S6S7
+CI_D2_D3
+CI_D1_D4
+CI_D5_D6
+CI_D9_D0
+CI_D7_D8
+
+### Do Seurat for 10X
+Read_10X<-function(path, name){
+  DayX_Drought <- Read10X(data.dir = path)
+  DayX_Drought <- CreateSeuratObject(counts = DayX_Drought, min.cells = 5, min.features = 200)
+  DayX_Drought$Day <- name
+  DayX_Drought[["percent.mt"]] <- PercentageFeatureSet(object = DayX_Drought, pattern = "ATMG")
+  DayX_Drought[["percent.ch"]] <- PercentageFeatureSet(object = DayX_Drought, pattern = "ATCG")
+  DayX_Drought <- subset(x = DayX_Drought, nFeature_RNA > 350 & nFeature_RNA < 3000 & percent.mt < 3 & percent.ch < 50)
+  DayX_Drought <- DayX_Drought[-grep("^ATCG", row.names(DayX_Drought)),]
+  DayX_Drought <- DayX_Drought[-grep("^ATMG", row.names(DayX_Drought)),]
+  DayX_Drought <- NormalizeData(object = DayX_Drought, verbose = FALSE)
+  DayX_Drought <- FindVariableFeatures(object = DayX_Drought, selection.method = "vst", nfeatures = 2000) 
+  DayX_Drought <- ScaleData(object = DayX_Drought ,verbose = TRUE)
+  DayX_Drought <- RunPCA(object = DayX_Drought , npcs = 30, verbose = FALSE)
+  DayX_Drought <- RunUMAP(object = DayX_Drought, reduction = "pca", dims = 1:30)
+  DayX_Drought <- FindNeighbors(object = DayX_Drought, reduction = "pca", dims = 1:30)
+  DayX_Drought <- FindClusters(DayX_Drought, resolution = 0.4)
+  DayX_Drought}
+
+Hormone_Mock<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_Mock_1/filtered_feature_bc_matrix","Hormone_Mock")
+Hormone_ABA<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_ABA_1/filtered_feature_bc_matrix","Hormone_ABA")
+Hormone_GA<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_GA_1/filtered_feature_bc_matrix","Hormone_GA")
+Hormone_MJ<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_MJ/filtered_feature_bc_matrix","Hormone_MJ")
+Hormone_CK<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_CK//filtered_feature_bc_matrix","Hormone_CK")
+Hormone_AUX<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_AUX/filtered_feature_bc_matrix","Hormone_AUX")
+Hormone_SA<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_SA/filtered_feature_bc_matrix","Hormone_SA")
+Hormone_ACC<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_ACC/filtered_feature_bc_matrix","Hormone_ACC")
+Hormone_BR<-Read_10X("/gale/netapp/home/jswift/analysis/10X_Drought_Hormone/10X_BR/filtered_feature_bc_matrix","Hormone_BR")
+
+Remove_Doublets<-function(sample_input, collision_rate){
+  # Calculate pK
+  sample_input_sweep <- paramSweep_v3(sample_input , PCs = 1:30, sct = FALSE)
+  sample_input_sweep_stats <- summarizeSweep(sample_input_sweep, GT = FALSE)
+  sample_input_sweep_stats_pK <- find.pK(sample_input_sweep_stats)
+  pK_pull<-as.data.frame(find.pK(sample_input_sweep_stats))
+  pK_pull<-as.numeric(as.vector((subset(pK_pull, pK_pull$BCmetric == max(pK_pull$BCmetric))$pK)))
+
+  ## Homotypic Doublet Proportion Estimate 
+  annotations <- sample_input@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations)
+  nExp_poi <- round(collision_rate*nrow(sample_input@meta.data))
+  nExp_poi.adj <- round(nExp_poi*(1-homotypic.prop))
+
+  ## Run DoubletFinder with varying classification stringencies 
+  sample_input_doublet_finder <- doubletFinder_v3(sample_input, PCs = 1:30, pN = 0.25, pK = pK_pull, nExp = nExp_poi.adj, reuse.pANN = FALSE, sct = FALSE)
+  colnames(sample_input_doublet_finder@meta.data)[10]<-'doublet_call'
+
+  doublet_cluster<-DimPlot(object = sample_input_doublet_finder , reduction = "umap", group.by = colnames(sample_input_doublet_finder @meta.data)[10], raster= TRUE)
+  new_sample_doublets_removed<-subset(x = sample_input_doublet_finder, doublet_call == 'Singlet')
+  new_sample_doublets_removed}
+
+Hormone_Mock<-Remove_Doublets(Hormone_Mock,0.0209)
+Hormone_ABA<-Remove_Doublets(Hormone_ABA,0.0121)
+Hormone_MJ<-Remove_Doublets(Hormone_MJ,0.0523)
+Hormone_CK<-Remove_Doublets(Hormone_CK,0.0571)
+Hormone_AUX<-Remove_Doublets(Hormone_AUX,0.062)
+Hormone_SA<-Remove_Doublets(Hormone_SA,0.074)
+Hormone_ACC<-Remove_Doublets(Hormone_ACC,0.0426)
+Hormone_BR<-Remove_Doublets(Hormone_BR,0.0274)
+Hormone_GA<-Remove_Doublets(Hormone_GA,0.0459)
+
+### Merge
+plant_combined_merged <- merge(Hormone_Mock, y = c(Hormone_ABA, Hormone_MJ, Hormone_CK, Hormone_AUX, Hormone_SA, Hormone_ACC, Hormone_BR, Hormone_GA, # order matters, needs to be the same as FindIntegrationAnchors() below
+                                                   CI_P1P3, CI_P2P4, CI_P5P7, CI_P6P8, CI_P9S1, CI_S2S3, CI_S4S5, CI_S6S7, CI_D2_D3, CI_D1_D4, CI_D5_D6, CI_D9_D0, CI_D7_D8)) 
+
+# Remove Nuclei
+plant_combined_merged
+plant_combined_merged <-plant_combined_merged [,!substr(colnames(plant_combined_merged ),1,5) %in% c("D09_W","D09_D")] # Remove Day 9 Rosette
+plant_combined_merged <-plant_combined_merged [,!substr(colnames(plant_combined_merged ),4,6) %in% c("_C_")] # Remove Control 
+plant_combined_merged <-plant_combined_merged [,!substr(colnames(plant_combined_merged ),1,5) %in% c("D12_S")] # Remove Day 12 Seedling
+plant_combined_merged
+
+plant_combined_merged <- NormalizeData(object = plant_combined_merged , verbose = FALSE)
+plant_combined_merged <- FindVariableFeatures(object = plant_combined_merged, selection.method = "vst", nfeatures = 3000)
+DefaultAssay(object = plant_combined_merged) <- "RNA" 
+save(plant_combined_merged, file = "L1_plant_combined_merged.RData")
+
+### Subset by Variable Features
+Variable_Features<-VariableFeatures(plant_combined_merged)
+length(Variable_Features)
+
+CI_P1P3<-CI_P1P3[Variable_Features,]
+CI_P2P4<-CI_P2P4[Variable_Features,]
+CI_P5P7<-CI_P5P7[Variable_Features,]
+CI_P6P8<-CI_P6P8[Variable_Features,]
+CI_P9S1<-CI_P9S1[Variable_Features,]
+CI_S2S3<-CI_S2S3[Variable_Features,]
+CI_S4S5<-CI_S4S5[Variable_Features,]
+CI_S6S7<-CI_S6S7[Variable_Features,]
+
+CI_D2_D3<-CI_D2_D3[Variable_Features,]
+CI_D1_D4<-CI_D1_D4[Variable_Features,]
+CI_D5_D6<-CI_D5_D6[Variable_Features,]
+CI_D9_D0<-CI_D9_D0[Variable_Features,]
+CI_D7_D8<-CI_D7_D8[Variable_Features,]
+
+Hormone_Mock<-Hormone_Mock[Variable_Features,]
+Hormone_ABA<-Hormone_ABA[Variable_Features,]
+Hormone_MJ<-Hormone_MJ[Variable_Features,]
+Hormone_CK<-Hormone_CK[Variable_Features,]
+Hormone_AUX<-Hormone_AUX[Variable_Features,]
+Hormone_SA<-Hormone_SA[Variable_Features,]
+Hormone_ACC<-Hormone_ACC[Variable_Features,]
+Hormone_BR<-Hormone_BR[Variable_Features,]
+Hormone_GA<-Hormone_GA[Variable_Features,]
+
+### Integration
+plant_anchors <- FindIntegrationAnchors(object.list = list(Hormone_Mock, Hormone_ABA, Hormone_MJ, Hormone_CK, Hormone_AUX, Hormone_SA, Hormone_ACC, Hormone_BR, Hormone_GA,  # order matters, needs to be the same as merge() command above
+                                                           CI_P1P3, CI_P2P4, CI_P5P7, CI_P6P8, CI_P9S1, CI_S2S3, CI_S4S5, CI_S6S7, CI_D2_D3, CI_D1_D4, CI_D5_D6, CI_D9_D0, CI_D7_D8), reference= c(1:9),
+                                                           dims = 1:30) # crucial that reference is on 10X #  You need an anchor set, or you run out of memory 
+plant_combined_integrated <- IntegrateData(anchorset = plant_anchors, dims = 1:30)
+
+# Remove Nuclei
+plant_combined_integrated
+plant_combined_integrated <-plant_combined_integrated [,!substr(colnames(plant_combined_integrated),1,5) %in% c("D09_W","D09_D")] # Remove Day 9 Rosette
+plant_combined_integrated <-plant_combined_integrated [,!substr(colnames(plant_combined_integrated),4,6) %in% c("_C_")] # Remove Control 
+plant_combined_integrated <-plant_combined_integrated [,!substr(colnames(plant_combined_integrated),1,5) %in% c("D12_S")] # Remove Day 12 Seedling
+plant_combined_integrated
+save(plant_combined_integrated, file = "L1_plant_combined_integrated_prescaling.RData")
+
+
+DefaultAssay(object = plant_combined_integrated) <- "integrated" 
+plant_combined_integrated <- ScaleData(object = plant_combined_integrated, vars.to.regress = c('nCount_RNA'), verbose = TRUE)
+plant_combined_integrated <- RunPCA(object = plant_combined_integrated, npcs = 30, verbose = FALSE)
+plant_combined_integrated <- RunUMAP(object = plant_combined_integrated, reduction = "pca", dims = 1:30)
+plant_combined_integrated <- FindNeighbors(object = plant_combined_integrated, reduction = "pca", dims = 1:30)
+plant_combined_integrated <- FindClusters(plant_combined_integrated, resolution = 0.4)
+save(plant_combined_integrated, file = "L1_plant_combined_integrated.RData")
+DefaultAssay(object = plant_combined_integrated) <- "RNA"
+plot(DimPlot(object = plant_combined_integrated, reduction = "umap", label = TRUE, raster=FALSE))
+
+# Transfering UMAP and Meta Data
+plant_combined_merged[['umap']] <- plant_combined_integrated[['umap']]
+plant_combined_merged[['integrated']] <- plant_combined_integrated[['integrated']]
+plant_combined_merged@meta.data$seurat_clusters <- plant_combined_integrated@meta.data$seurat_clusters
+plant_combined_merged@meta.data$integrated_snn_res.0.4 <- plant_combined_integrated@meta.data$integrated_snn_res.0.4
+
+# Create Final Object
+plant_combined<-plant_combined_merged 
+length(plant_combined$nFeature_RNA) # no. of nuceli
+median(plant_combined$nFeature_RNA) # median no. of genes.
+median(plant_combined$nCount_RNA) # no. of reads 
+
+# Clear Memory
+remove(plant_combined_merged)
+remove(plant_combined_integrated)
+
+# Set Factors
+DefaultAssay(object = plant_combined) <- "RNA"
+experiment_type<-substring(colnames(plant_combined),1,9) 
+for (i in 1:length(experiment_type)) { if (substr(experiment_type[i],1,1) %in% c('A','T','C','G')) {experiment_type[i] <- 'hormone' }}
+for (i in 1:length(experiment_type)) { if (substr(experiment_type[i],5,5) %in% c('D','W')) {experiment_type[i] <- 'rosette' }}
+for (i in 1:length(experiment_type)) { if (substr(experiment_type[i],5,5) %in% c('S')) {experiment_type[i] <- 'seedling' }}
+plant_combined$experiment_type <- experiment_type
+Idents(plant_combined)<-plant_combined$seurat_clusters
+table(plant_combined$seurat_clusters)
+
+# Remove Tiny Clusters
+plant_combined<-plant_combined[,WhichCells(plant_combined, idents = c(0:17))] # remove tiny clusters
+table(plant_combined$seurat_clusters)
+
+# Save
+save(plant_combined, file = "L1_plant_combined.RData")
+plant_combined_subsample <- plant_combined[, sample(colnames(plant_combined), size = 80000, replace=F)]
+save(plant_combined_subsample, file = "L1_plant_combined_subsample.RData")
