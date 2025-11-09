@@ -1,0 +1,18 @@
+library(Seurat)
+load("L1_plant_combined_subsample.RData")
+
+markers_list<-list(NA)
+for (i in c(0:17)){
+  print(i)
+  markers<-FindMarkers(plant_combined_subsample, ident.1 = as.character(i), verbose = FALSE, only.pos = TRUE)
+  markers[,6]<-markers$pct.1/markers$pct.2
+  markers<-markers[order(markers$p_val_adj,decreasing = FALSE),]
+  markers_list[[i+1]]<-markers}
+
+save(markers_list, file = "L1_markers_list.RData")
+
+# print top 200 markers
+load("L1_markers_list.RData")
+for (i in 1:18){
+  markers<-markers_list[[i]][1:200,]
+  write.table(markers, file = paste("L1_cluster_",i-1,"_markers.txt",sep=''),quote=F,sep="\t")}
