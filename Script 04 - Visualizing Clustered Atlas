@@ -1,0 +1,95 @@
+# This script will read in the whole atlas, and allow one to interrogate it based off its different experiments (individual leaves, whole seedlings, hormone treatments)
+
+load("L1_plant_combined_subsample.RData") # load in subsample for vizualization on local computer
+plant_combined<-plant_combined_subsample
+remove(plant_combined_subsample)
+
+DimPlot(object = plant_combined, reduction = "umap", label = TRUE, raster = TRUE) + NoLegend()
+DimPlot(object = plant_combined, reduction = "umap", label = TRUE, raster = TRUE, split.by = 'experiment_type')
+
+length(plant_combined$nFeature_RNA) # no. of nuceli
+median(plant_combined$nFeature_RNA) # median no. of genes.
+median(plant_combined$nCount_RNA) # no. of reads 
+
+### Rosette QC
+  plant_combined_rosette<-plant_combined[,plant_combined$experiment_type %in% c('rosette')]
+  plant_combined_rosette_rep2<-plant_combined_rosette[,substr(colnames(plant_combined_rosette),11,13) %in% c("R01","R02","R03")] #  2nd rep
+  plant_combined_rosette_rep1<-plant_combined_rosette[,substr(colnames(plant_combined_rosette),11,13) %in% c("R04","R05","R06")] #  1st rep
+  DimPlot(object = plant_combined_rosette_rep1, reduction = "umap", raster=TRUE)
+  DimPlot(object = plant_combined_rosette_rep2, reduction = "umap", raster=TRUE)
+  
+  # Looking at Treatment
+  plant_combined_rosette$leaf_treatment <-substring(colnames(plant_combined_rosette),5,5)
+  DimPlot(object = plant_combined_rosette, reduction = "umap", split.by = "leaf_treatment", raster=TRUE)
+  barplot(table(plant_combined_rosette$leaf_treatment))
+  
+  # Looking at Leaf Number
+  plant_combined_rosette$leaf_number<-substring(colnames(plant_combined_rosette),7,9)
+  DimPlot(object = plant_combined_rosette, reduction = "umap", split.by = "leaf_number", raster=TRUE)
+  barplot(table(plant_combined_rosette$leaf_number))
+  
+  # Looking at Day
+  plant_combined_rosette$leaf_day<-substring(colnames(plant_combined_rosette),1,3)
+  DimPlot(object = plant_combined_rosette, reduction = "umap", split.by = "leaf_day", raster = TRUE)
+  barplot(table(plant_combined_rosette$leaf_day))
+  
+  # Looking at Treatment, Leaf Number, Day
+  plant_combined_rosette$all<-paste(substring(colnames(plant_combined_rosette),1,3),
+                                         substring(colnames(plant_combined_rosette),7,9),
+                                         substring(colnames(plant_combined_rosette),5,5),
+                                         substring(colnames(plant_combined_rosette),11,13))
+  
+  # Plotting leaf nuclei count
+  leaf_representation<-as.data.frame(table(plant_combined_rosette$all))
+  leaf_representation[,3]<-substr(leaf_representation[,1],5,7)
+  colnames(leaf_representation)<-c("sample","count","leaf_no")
+  #save(leaf_representation, file = "L1_leaf_representation.RData")
+  
+  setwd("~/Desktop/")
+  load("L1_leaf_representation.RData") # from whole dataset
+  leaf_representation[,4]<-as.numeric(substr(leaf_representation[,1],2,3))
+  leaf_representation[,5]<-substr(leaf_representation[,1],9,9)
+  colnames(leaf_representation)<-c("sample","count","leaf_no","day","treatment")
+  leaf_representation_subset<-subset(leaf_representation, leaf_representation$count>50)
+  table(leaf_representation_subset$leaf_no)
+  
+
+
+### Seedling QC
+  plant_combined_seedling<-plant_combined[,plant_combined$experiment_type %in% c('seedling')]
+  
+  # Looking at Time
+  plant_combined_seedling$seedling_time<-substring(colnames(plant_combined_seedling),1,3)
+  DimPlot(object = plant_combined_seedling, reduction = "umap", split.by = "seedling_time", raster=TRUE)
+  
+  # Looking at Treatment
+  plant_combined_seedling$seedling_treatment<-substring(colnames(plant_combined_seedling),7,9)
+  DimPlot(object = plant_combined_seedling, reduction = "umap", split.by = "seedling_treatment", raster=TRUE)
+  
+  # Looking at Rep
+  plant_combined_seedling$seedling_replicate<-substring(colnames(plant_combined_seedling),11,13)
+  DimPlot(object = plant_combined_seedling, reduction = "umap", split.by = "seedling_replicate", raster=TRUE)
+  
+length(table(substring(colnames(plant_combined_seedling),1,13)))
+
+### Hormone QC
+  plant_combined_hormone<-plant_combined[,plant_combined$experiment_type %in% c('hormone')]
+  
+  # Looking at Hormones
+  plant_combined_hormone$hormone<-plant_combined_hormone$Day
+  DimPlot(object = plant_combined_hormone, reduction = "umap", split.by = "Day", raster=TRUE)
+
+
+### Single Gene Visual
+  DefaultAssay(object = plant_combined) <- "RNA"
+  
+  plot_grid("AT5G49730") # FRO6
+  plot_grid("AT4G28080") # TSSp promoter
+  
+  gene_of_interest<-"AT1G75690"
+  FeaturePlot(object = plant_combined, features = gene_of_interest, cols = c("grey73","firebrick4"), raster=FALSE)
+  FeaturePlot(object = plant_combined, features = gene_of_interest, min.cutoff = 0, max.cutoff = 20, cols = c("grey", "red"), split.by = "experiment_type", raster = TRUE)
+  
+  VlnPlot(object = plant_combined, features = gene_of_interest,pt.size = 0)
+  VlnPlot(object = plant_combined, features = gene_of_interest, split.by= "experiment_type")
+  VlnPlot(object = plant_combined, features = gene_of_interest, split.by= "experiment_type", idents = c(1))
