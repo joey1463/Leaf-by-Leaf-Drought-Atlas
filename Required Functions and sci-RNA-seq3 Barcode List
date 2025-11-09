@@ -1,0 +1,49 @@
+library(Seurat)
+library(DESeq2)
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+library(tidyr)
+library(plotly)
+library(stringr)
+library(dplyr)
+library(ggvenn)
+library(ggupset)
+library(treemapify)
+library(DoubletDecon)
+library(rstatix)
+library(VennDiagram)
+library(emmeans)
+library(viridis)
+library(cowplot)
+library(eulerr)
+library(ggalt)
+library(plyr)
+library(gplots)
+library(igraph)
+library(Matrix)
+library(devtools)
+library(slingshot)
+library(Rtsne)
+library(DoubletFinder)
+library(SingleCellExperiment)
+library(clusterExperiment)
+library(venneuler)
+
+my_palette <- colorRampPalette(c("blue", "black", "yellow"))(n = 100)
+
+# Read in Barcodes for sci-RNA-seq3
+setwd("~/Desktop/Salk/Protocols/Combo Indexing Oligos")
+
+# RT Barcodes
+RT_Barcodes<-read.table("sc_RT_plate.txt",header=TRUE, sep="\t")
+RT_Barcode<-NA
+for (i in 1:384) {RT_Barcode[i]<-substring(as.character(RT_Barcodes[i,4]),22,31)}
+RT_Barcodes[,5]<-RT_Barcode 
+
+# LIG Barcodes 
+LIG_Barcodes<-read.table("sc_ligation_plate.txt",header=TRUE, sep="\t")
+LIG_Barcode<-NA
+for (i in 1:384) {if (nchar(as.character(LIG_Barcodes[i,4])) == 53) {LIG_Barcode[i]<-substring(as.character(LIG_Barcodes[i,4]),44,53)} 
+                  if (nchar(as.character(LIG_Barcodes[i,4])) == 51) {LIG_Barcode[i]<-substring(as.character(LIG_Barcodes[i,4]),43,51)}}
+LIG_Barcodes[,5]<-LIG_Barcode
