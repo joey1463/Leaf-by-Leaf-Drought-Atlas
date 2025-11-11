@@ -1,0 +1,165 @@
+library(Seurat)
+
+# Downsampling
+
+Cluster_Level_Three<-function(subcluster_plant_combined_rosette, chosen_cluster){
+    subcluster_plant_combined_rosette_balanced<-subcluster_plant_combined_rosette
+  subcluster_plant_combined_rosette_balanced<-subcluster_plant_combined_rosette_balanced[,substr(colnames(subcluster_plant_combined_rosette_balanced),11,13) %in% c("R01","R02","R03")] 
+  subcluster_plant_combined_rosette_balanced<-subcluster_plant_combined_rosette_balanced[,as.numeric(substr(colnames(subcluster_plant_combined_rosette_balanced),2,3)) %in% c(0:8)] # remove re-watering treatment
+  DefaultAssay(object = subcluster_plant_combined_rosette_balanced) <- "RNA" 
+  leaf_names<-substr(colnames(subcluster_plant_combined_rosette_balanced),7,9)
+  leaf_namer<-unique(leaf_names)
+  leaf_namer<-leaf_namer[order(leaf_namer)]
+  selection<-NA
+  co_ords_sample<-NA
+  co_ord_list<-list(NA)
+  cut_off<-median(as.numeric(table(leaf_names)))
+  for (i in 1:length(leaf_namer)){
+  co_ords<- which((leaf_names == leaf_namer[i]) == TRUE)
+  if ((length(co_ords) < cut_off) == TRUE) { co_ords_sample_holding <- co_ords}
+  if ((length(co_ords) >= cut_off) == TRUE) { co_ords_sample_holding <- sample(co_ords, size = cut_off, replace=F)}
+  co_ord_list[[i]]<-co_ords_sample_holding}
+  selection<-c(co_ord_list[[1]],co_ord_list[[2]],co_ord_list[[3]],co_ord_list[[4]],co_ord_list[[5]],co_ord_list[[6]],co_ord_list[[7]],co_ord_list[[8]],
+               co_ord_list[[9]],co_ord_list[[10]],co_ord_list[[11]],co_ord_list[[12]],co_ord_list[[13]],co_ord_list[[14]],co_ord_list[[15]])
+  subcluster_plant_combined_rosette_balanced<-subcluster_plant_combined_rosette_balanced[,selection]
+  table(substr(colnames(subcluster_plant_combined_rosette_balanced),7,9))
+  subcluster_plant_combined_rosette_balanced
+  subcluster_plant_combined_rosette_balanced<- SCTransform(subcluster_plant_combined_rosette_balanced, vars.to.regress = "nCount_RNA", verbose = TRUE) 
+  subcluster_plant_combined_rosette_balanced<- RunPCA(object = subcluster_plant_combined_rosette_balanced, npcs = 30, verbose = FALSE)
+  subcluster_plant_combined_rosette_balanced<- RunUMAP(object = subcluster_plant_combined_rosette_balanced, reduction = "pca", dims = 1:5) 
+  subcluster_plant_combined_rosette_balanced<- FindNeighbors(object = subcluster_plant_combined_rosette_balanced, reduction = "pca", dims = 1:5)
+  subcluster_plant_combined_rosette_balanced<- FindClusters(subcluster_plant_combined_rosette_balanced, resolution = 0.4) 
+  DefaultAssay(object = subcluster_plant_combined_rosette_balanced) <- "RNA" 
+  save(subcluster_plant_combined_rosette_balanced, file = paste("L3", paste(chosen_cluster, sep="", collapse=""),"subcluster_rosette_balanced.RData",sep='_'))}
+
+# Epidermis
+load("L3_epidermis_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "epidermis")
+
+# Phloem
+load("L3_phloem_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "phloem")
+
+# Mesophyll
+load("L3_mesophyll_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "mesophyll")
+
+# Bundle Sheath
+load("L3_bundle_sheath_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "bundle_sheath")
+
+# Xylem
+load("L3_xylem_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "xylem")
+
+# Guard 
+load("L3_guard_subcluster_rosette.RData")
+Cluster_Level_Three(subcluster_plant_combined_rosette, "guard")
+
+
+# Visualzing
+
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files/")
+load("L3_epidermis_subcluster_rosette_balanced.RData")
+load("L3_mesophyll_subcluster_rosette_balanced.RData")
+load("L3_guard_subcluster_rosette_balanced.RData")
+load("L3_phloem_subcluster_rosette_balanced.RData")
+load("L3_xylem_subcluster_rosette_balanced.RData")
+load("L3_bundle_sheath_subcluster_rosette_balanced.RData")
+
+# Rosette
+DimPlot(object = subcluster_plant_combined_rosette_balanced, reduction = "umap", label=TRUE, raster=FALSE)
+subcluster_plant_combined_rosette_balanced$rosette_leaf<-as.numeric(substr(colnames(subcluster_plant_combined_rosette_balanced),8,9))
+subcluster_plant_combined_rosette_balanced$treatment<-substr(colnames(subcluster_plant_combined_rosette_balanced),5,5)
+subcluster_plant_combined_rosette_balanced$leaf_treatment<-substr(colnames(subcluster_plant_combined_rosette_balanced),5,9)
+subcluster_plant_combined_rosette_balanced$day<-substr(colnames(subcluster_plant_combined_rosette_balanced),1,3)
+subcluster_plant_combined_rosette_balanced$day_treatment<-substr(colnames(subcluster_plant_combined_rosette_balanced),1,5)
+
+# Plot UMAP
+Idents(subcluster_plant_combined_rosette_balanced)<-subcluster_plant_combined_rosette_balanced$rosette_leaf
+umap_plot<-DimPlot(object = subcluster_plant_combined_rosette_balanced, reduction = "umap", label=FALSE, raster=FALSE, group.by='rosette_leaf')   + viridis::scale_color_viridis(discrete = TRUE, direction = 1)  & NoAxes()
+umap_plot<-umap_plot + ggtitle("") # has to be seperate for some reason
+umap_plot + theme(legend.position = "none")
+
+# Epidermis
+library('gridExtra')
+
+#Pair 1
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c('AT1G56010','AT1G70210'), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","red3","blue3"))  + theme(legend.position = "none") & NoAxes()  # CYCD1 and KISS ME DEADLY 
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+#Pair 2
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c('AT5G52310','AT5G47500'), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","red3","blue3"))  + theme(legend.position = "none") & NoAxes()  # PME5 and RD29
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+
+genes<- c('AT1G56010', # KMD1
+          'AT5G52310', # RD29A
+          'AT1G70210', #CYCD1 (young)
+          'AT5G47500', #PME5 (young)
+          'AT5G06150') # CYCB1 (young)
+
+
+# Assign clear, distinct colors
+gene_colors <- c(
+  'AT1G56010' = 'red3',  
+  'AT5G52310' = 'yellow3',  
+
+  'AT1G70210' = 'deepskyblue1', 
+  'AT5G47500' = 'springgreen3', 
+  'AT5G06150' = 'darkorchid2'   
+)
+
+# Get expression and UMAP coordinates
+expr_mat <- FetchData(subcluster_plant_combined_rosette_balanced, vars = genes)
+coords <- Embeddings(subcluster_plant_combined_rosette_balanced, "umap") %>% as.data.frame()
+
+# Normalize each gene's expression between 0 and 1
+expr_norm <- apply(expr_mat, 2, function(x) {
+  rng <- range(x)
+  if (diff(rng) == 0) return(rep(0, length(x)))
+  (x - rng[1]) / (rng[2] - rng[1])
+})
+
+# Find the most expressed gene per nucleus
+max_expr_idx <- apply(expr_norm, 1, which.max)
+max_expr_val <- apply(expr_norm, 1, max)
+max_gene <- genes[max_expr_idx]
+
+# Set to "none" for nuclei with zero expression
+max_gene[max_expr_val == 0] <- "none"
+
+# Assign colors, using grey85 for no expression
+color_map <- c(gene_colors, "none" = "grey95")
+plot_colors <- color_map[max_gene]
+
+# Make the data frame and plot
+plot_df <- coords %>% mutate( gene = max_gene, color = plot_colors )
+
+# Reorder: grey ("none") first, others after
+plot_df <- plot_df %>%  arrange(desc(gene == "none"))  # TRUEs first → grey cells go to back
+
+# Plot with reordered points
+six_genes<-ggplot(plot_df, aes(UMAP_1, UMAP_2)) +geom_point(color = plot_df$color, size = 0.5) +theme_void()
+grid.arrange(umap_plot + ggtitle("") + theme(legend.position = "none"), six_genes,nrow=1)
+
+
+# Mesophyll
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c("AT2G17840","AT1G29910"), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","red3","blue3"))  + theme(legend.position = "none") & NoAxes()  # CAB3 and ERD7
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+# Guard
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c("AT2G15080","AT5G20630"), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","red3","blue3"))  + theme(legend.position = "none") & NoAxes() # GLP3 and RLP19
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+# Phloem
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c("AT1G12110","AT5G23020"), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","blue3","red3"))  + theme(legend.position = "none") & NoAxes() # NRT1.1 and IMS2
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+# Xylem
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c("AT2G03090","AT1G75750"), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","blue3","red3"))  + theme(legend.position = "none") & NoAxes() # EXP15 and GASA1
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
+
+# Bundle Sheath
+plot_genes<-FeaturePlot(object = subcluster_plant_combined_rosette_balanced, features = c("AT3G04290","AT5G19140"), min.cutoff = 0, raster=FALSE, blend=TRUE, cols = c("grey85","blue3","red3"))  + theme(legend.position = "none") & NoAxes() #  ATLTL1 and AILP1 
+grid.arrange(umap_plot + theme(legend.position = "none") , plot_genes[[3]]+ ggtitle(""), nrow=1)
