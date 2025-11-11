@@ -1,0 +1,71 @@
+trichome_markers<-c('AT3G27920','AT1G79840','AT4G32650','AT5G57800')
+MI_markers<-c('AT5G26000', 'AT5G25980')  
+hydathode_markers<-c('AT3G16670', 'AT1G62510', 'AT3G16660')
+xylem_markers<-c('AT5G54690','AT2G37090','AT4G35350','AT2G38080')
+phloem_markers<-c('AT5G02600','AT1G22710','AT3G48740', 'AT5G23660') 
+epidermis_markers<-c('AT2G26250','AT2G30424','AT1G27950','AT5G13930','AT5G62210','AT2G42840','AT1G80080','AT4G23800') # ,'AT1G18370','AT3G17360''AT3G19050',
+mesophyll_markers<-c('AT1G29910','AT2G05100','AT5G38420','AT5G01530','AT4G10340','AT3G01500') # 'AT1G55670',,'AT1G79040''AT4G14400','AT5G49730',
+guard_markers<-c('AT4G14480','AT1G22690','AT1G12480') 
+
+all_markers<-rev(c(mesophyll_markers, phloem_markers,guard_markers, epidermis_markers, xylem_markers,MI_markers,trichome_markers,hydathode_markers))
+
+plant_combined_labelled <- RenameIdents(                      plant_combined ,`0`  = "mesophyll", 
+                                                                              `1`  = "mesophyll", 
+                                                                              `2`  = "bundle_sheath",
+                                                                              `3`  = "phloem",
+                                                                              `4`  = "guard",
+                                                                              `5`  = "mesophyll",
+                                                                              `6`  = "epidermis",
+                                                                              `7`  = "mesophyll",
+                                                                              `8`  = "epidermis", 
+                                                                              `9`  = "mesophyll", 
+                                                                              `10`  = "phloem",
+                                                                              `11`  = "xylem",
+                                                                              `12`  = "myrosin_idioblast",
+                                                                              `13`  = "epidermis",
+                                                                              `14`  = "unknown",
+                                                                              `15`  = "trichome",
+                                                                              `16`  = "hydathode",
+                                                                              `17`  = "unknown")
+
+DimPlot(object = plant_combined, reduction = "umap", label=TRUE, raster=TRUE) 
+DimPlot(object = plant_combined_labelled, reduction = "umap", label=TRUE, raster=TRUE) 
+pdf("figure_1_dotplot.pdf")
+DotPlot(plant_combined_labelled, features = all_markers, scale.max=30) + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip() 
+dev.off()
+
+# Export 'AverageExpression' Object for Z-score plotting
+plant_combined_labelled<-plant_combined_labelled[,plant_combined_labelled$experiment_type %in% c('rosette')]
+plant_combined_labelled<-plant_combined_labelled[,WhichCells(plant_combined_labelled, idents = c('mesophyll','epidermis','guard','phloem','xylem','bundle_sheath'))] 
+plant_combined_labelled<-plant_combined_labelled[,substr(colnames(plant_combined_labelled),11,13) %in% c("R01","R02","R03")] # Take Second Bigger Rep
+Idents(plant_combined_labelled)<-paste(substr(colnames(plant_combined_labelled),1,9),Idents(plant_combined_labelled),sep='_')
+plant_combined_average_expression<-as.data.frame(x = AverageExpression(object = plant_combined_labelled, verbose = FALSE)$RNA)
+save(plant_combined_average_expression, file = "plant_combined_average_expression.RData") # for Z-score plots
+
+# Coloring
+colors<-c(rep("grey90",18))
+# vasc 3,8,9,12,13,17
+colors[c(3)+1]<-"darkorchid2"
+colors[c(10)+1]<-"darkorchid1"
+colors[c(11)+1]<-"hotpink2"
+colors[c(2)+1]<-"darkorchid4"
+colors[c(12)+1]<-"deeppink4"
+colors[c(16)+1]<-"deeppink3"
+
+# meso 0,1,5,7,9
+colors[c(0)+1]<-"springgreen4"
+colors[c(1)+1]<-"springgreen2"
+colors[c(5)+1]<-"seagreen4"
+colors[c(7)+1]<-"seagreen3"
+colors[c(9)+1]<-"limegreen"
+
+# epi 6,7,10,5,16
+colors[c(6)+1]<-"tan2"
+colors[c(8)+1]<-"tan4"
+colors[c(15)+1]<-"orange3"
+colors[c(13)+1]<-"darkgoldenrod"
+colors[c(4)+1]<-"gold4"
+
+pdf("figure_1_UMAP.pdf")
+DimPlot(object = plant_combined, reduction = "umap", label=FALSE, cols = colors, raster=FALSE) + NoLegend() 
+dev.off()
