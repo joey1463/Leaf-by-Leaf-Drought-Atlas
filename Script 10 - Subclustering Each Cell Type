@@ -1,0 +1,46 @@
+library(Seurat)
+
+Cluster_Level_Three<-function(subcluster_plant_combined, cluster_numbers, chosen_cluster){
+    
+  # Extract CI Nuclei
+  subcluster_plant_combined<-subcluster_plant_combined[,WhichCells(subcluster_plant_combined, idents = cluster_numbers)] 
+  subcluster_plant_combined_rosette<-subcluster_plant_combined[,subcluster_plant_combined$experiment_type %in% c('rosette')]
+  subcluster_plant_combined_seedling<-subcluster_plant_combined[,subcluster_plant_combined$experiment_type %in% c('seedling')]
+  
+  # Extract 10X Nuclei 
+  subcluster_plant_combined_hormone<-subcluster_plant_combined[,subcluster_plant_combined$experiment_type %in% c('hormone')]
+  
+  # Cluster Seedling Data
+    DefaultAssay(object = subcluster_plant_combined_seedling) <- "integrated" 
+    subcluster_plant_combined_seedling <- ScaleData(object = subcluster_plant_combined_seedling, verbose = TRUE,  vars.to.regress = c('nCount_RNA'))
+    subcluster_plant_combined_seedling <- RunPCA(object = subcluster_plant_combined_seedling, npcs = 10, verbose = FALSE)
+    subcluster_plant_combined_seedling <- RunUMAP(object = subcluster_plant_combined_seedling, reduction = "pca", dims = 1:10)
+    subcluster_plant_combined_seedling <- FindNeighbors(object = subcluster_plant_combined_seedling, reduction = "pca", dims = 1:10)
+    subcluster_plant_combined_seedling <- FindClusters(subcluster_plant_combined_seedling, resolution = 0.4)
+
+  # Save
+  save(subcluster_plant_combined_hormone, file = paste("L3", paste(chosen_cluster, sep="", collapse=""),"subcluster_hormone.RData",sep='_'))
+  save(subcluster_plant_combined_rosette, file = paste("L3", paste(chosen_cluster, sep="", collapse=""),"subcluster_rosette.RData",sep='_'))
+  save(subcluster_plant_combined_seedling, file = paste("L3", paste(chosen_cluster, sep="", collapse=""),"subcluster_seedling.RData",sep='_'))}
+
+load("L1_plant_combined.RData")
+
+# Bundle Sheath
+Cluster_Level_Three(plant_combined, cluster_numbers = c(2), "bundle_sheath")
+# Xylem 
+Cluster_Level_Three(plant_combined, cluster_numbers = c(11), "xylem")
+# Phloem
+Cluster_Level_Three(plant_combined, cluster_numbers = c(3, 10), "phloem")
+# Guard 
+Cluster_Level_Three(plant_combined, cluster_numbers = c(4), "guard")
+# Epidermis
+Cluster_Level_Three(plant_combined, cluster_numbers = c(6,8,13), "epidermis")
+# Mesophyll
+Cluster_Level_Three(plant_combined, cluster_numbers = c(0,1,5,7,9), "mesophyll")
+
+# Whole Epidermis (epidermis, guard, trichome)
+Cluster_Level_Three(plant_combined, cluster_numbers = c(6,8,13,4,15), "whole_epidermis")
+
+# Whole Vasculature (BS, xylem, phloem, MI, hydathode)
+Cluster_Level_Three(plant_combined, cluster_numbers = c(2,11,3,10,12,16), "whole_vasculature")
+
