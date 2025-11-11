@@ -1,0 +1,102 @@
+
+gene_visual<-function(gene_name){grid.arrange(FeaturePlot(object = plant_combined, features = gene_name, raster = TRUE), 
+             VlnPlot(object = plant_combined, features = gene_name, pt.size = 0))}
+
+# Mesophyll
+gene_visual('AT4G14400') 
+gene_visual('AT5G49730') 
+gene_visual('AT1G29910') 
+gene_visual('AT1G55670')
+gene_visual('AT1G79040') 
+gene_visual('AT2G05100')
+gene_visual('AT5G38420')
+gene_visual('AT5G01530')
+gene_visual('AT4G10340')
+gene_visual('AT3G01500')
+mesophyll_markers<-c('AT4G14400','AT5G49730','AT1G29910','AT1G55670','AT1G79040','AT2G05100','AT5G38420','AT5G01530','AT4G10340','AT3G01500')
+DotPlot(plant_combined, features = mesophyll_markers) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+
+# Myrosin idioblast
+gene_visual('AT5G26000')
+gene_visual('AT5G25980')
+gene_visual('AT3G24140') # FAMA (is in both MI and GC)
+MI_markers<-c('AT5G26000', 'AT5G25980', 'AT3G24140')
+DotPlot(plant_combined, features = MI_markers) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+# Hydathode
+gene_visual('AT3G16670')
+gene_visual('AT1G62510') 
+gene_visual('AT3G16660')
+hydathode_markers<-c('AT3G16670', 'AT1G62510', 'AT3G16660')
+DotPlot(plant_combined, features = hydathode_markers) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+# Phloem Parenchyma and Companion 
+gene_visual('AT5G02600') # NAKR1
+gene_visual('AT3G48740') # SWEET11
+gene_visual('AT5G23660') # SWEET12 
+gene_visual('AT1G22710') # SUC2 
+phloem_markers<-c('AT5G02600','AT1G22710','AT3G48740', 'AT5G23660') 
+DotPlot(plant_combined, features = phloem_markers) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+# Xylem
+gene_visual('AT5G54690')
+gene_visual('AT2G37090') 
+gene_visual('AT4G35350')
+gene_visual('AT2G38080') 
+
+xylem_markers<-c('AT5G54690','AT2G37090','AT4G35350','AT2G38080')
+DotPlot(plant_combined, features = xylem_markers) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+
+# Bundle Sheath
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+load("L1_markers_list.RData") # Note markers were called on subset and not full data
+BS_X_Markers<-read.table("Timmerman_cluster_4.txt",sep='', header=TRUE)
+rownames(BS_X_Markers)<-BS_X_Markers$Gene_model
+BS_X_Markers$enrichment<-BS_X_Markers$pct.1/BS_X_Markers$pct.2
+BS_X_Markers<-subset(BS_X_Markers, BS_X_Markers$enrichment>9)
+
+markers_overlap<-NA
+for (i in 1:17){ my_markers<-rownames(subset(markers_list[[i]], markers_list[[i]]$V6>3))
+                 outcome<-as.numeric(rownames(BS_X_Markers) %in% my_markers)
+                 markers_overlap[i]<-(sum(outcome)/length(outcome))}
+  
+plot_matrix<-as.data.frame(cbind(markers_overlap*100, c(0:18)))
+p1<- ggplot(data=plot_matrix, aes( x= plot_matrix$V2, y=plot_matrix$V1)) + geom_bar(stat="identity", fill="grey70") + theme_bw()
+p2<- p1 + labs(x = "") + labs(y = "") + theme(axis.text=element_text(size=12),axis.title=element_text(size=12)) #+ scale_x_discrete(limits = positions)
+p2 + scale_x_continuous(plot_matrix$V2, breaks = plot_matrix$V2) + xlab("")
+
+
+# Epidermis Markers
+gene_visual('AT2G26250') # FDH # TRAVIS
+gene_visual('AT2G30424') # TCL2 # TRAVIS
+gene_visual('AT1G27950') # LPTG1 # INZE Kim et al
+gene_visual('AT5G13930') # CHS, adaxial # TRAVIS
+gene_visual('AT5G62210') # adaxial # TRAVIS
+gene_visual('AT2G42840') # PDF1
+gene_visual('AT1G80080') # TMM # proliferative
+gene_visual('AT3G17360') # POK1
+gene_visual('AT3G19050') # POK2
+gene_visual('AT4G23800') # HMGB6
+
+epidermis_markers<-c('AT2G26250','AT2G30424','AT1G27950','AT5G13930','AT5G62210','AT1G18370','AT2G42840','AT1G80080','AT3G17360','AT3G19050','AT4G23800') 
+DotPlot(plant_combined, features = epidermis_markers, scale.max=30) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+# Guard
+gene_visual('AT4G14480') 
+gene_visual('AT1G22690')
+gene_visual('AT5G26000')
+gene_visual('AT3G24140')
+gene_visual('AT1G12480')
+gene_visual('AT2G46720')
+guard_markers<-c('AT4G14480','AT1G22690','AT5G26000','AT3G24140','AT1G12480','AT2G46720')
+DotPlot(plant_combined, features = guard_markers, col.max = 2, scale.max=10) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1)) #+ NoLegend()
+
+# Trichomes
+gene_visual('AT3G27920')
+gene_visual('AT1G79840') 
+gene_visual('AT4G32650')
+gene_visual('AT5G57800')
+trichome_markers<-c('AT3G27920','AT1G79840','AT4G32650','AT5G57800')
+DotPlot(plant_combined, features = trichome_markers, col.max = 2, scale.max=10) + RotatedAxis() + scale_colour_gradient2(low = "white", mid = "grey70", high = "red3") +  theme_bw()  + theme(axis.text.x = element_text(angle = 45, hjust = 1))
