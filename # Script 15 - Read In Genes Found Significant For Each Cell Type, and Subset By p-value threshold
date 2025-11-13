@@ -1,0 +1,35 @@
+# Read in Conditions Table
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+load(paste("L1_conditions_rosette_3-way.RData",sep=''))
+Conditions$normalized_age<-23 + Conditions$real_time - (Conditions$development * 2) 
+
+# Read in Data
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+chosen_cluster<-'L3_epidermis'
+chosen_cluster<-'L3_phloem'
+chosen_cluster<-'L3_mesophyll'
+chosen_cluster<-'L3_xylem'
+chosen_cluster<-'L3_bundle_sheath'
+chosen_cluster<-'L3_guard'
+chosen_cluster<-'L3_whole_epidermis'
+chosen_cluster<-'L3_whole_vasculature'
+
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_pseudo_bulk_normalized_rosette.RData",sep=''))
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_pseudo_bulk_normalized_rosette_three_way.RData",sep=''))
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_multivariate_list_rosette.RData",sep=''))
+
+Two_Model_Output_Sig<-Multivariate_List[[1]]
+Development_Output_Sig<-Multivariate_List[[2]]
+Treatment_Output_Sig<-Multivariate_List[[3]]
+Treatment_Output_Sig$log2FoldChange<-Treatment_Output_Sig$log2FoldChange*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+
+# Subset by thresholds
+cut_off<-0.01 # p-value threshold # 0.01
+fold_change<-0.04 # linear model coefficient threshold
+Two_Model_Output_Sig<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & abs(Two_Model_Output_Sig$Development_FC)>fold_change)
+dim(Two_Model_Output_Sig)
+Two_Model_Output_Sig$Treatment_FC<-Two_Model_Output_Sig$Treatment_FC*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+Development_Output_Sig<-subset(Development_Output_Sig, Development_Output_Sig$padj<cut_off & abs(Development_Output_Sig$log2FoldChange)>fold_change)
+dim(Development_Output_Sig)
+Treatment_Output_Sig<-subset(Treatment_Output_Sig, Treatment_Output_Sig$padj<cut_off ) 
+dim(Treatment_Output_Sig)
