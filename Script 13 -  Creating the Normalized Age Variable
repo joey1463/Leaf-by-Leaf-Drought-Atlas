@@ -1,0 +1,41 @@
+# Read in Data
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+
+load("L1_pseudo_bulk_normalized_rosette_3-way.RData")
+load("L1_multivariate_list_rosette_3-way.RData")
+load("L1_conditions_rosette_3-way.RData")
+
+Three_Model_Output<-Multivariate_List[[1]]
+Development_Real_Model_Output<-Multivariate_List[[2]]
+Development_Model_Output<-Multivariate_List[[3]]
+Real_Model_Output<-Multivariate_List[[4]]
+Treatment_Model_Output<-Multivariate_List[[5]]
+
+# Call Significance and look at gene counts
+cut_off<-0.0001 # p-value cut off
+Development_Real_Sig<-subset(Development_Real_Model_Output, Development_Real_Model_Output$Development_p<cut_off &  Development_Real_Model_Output$Real_Time_p<cut_off)
+dim(Development_Real_Sig)
+Real_Sig<-subset(Real_Model_Output, Real_Model_Output$Real_Time_p<cut_off)
+dim(Real_Sig)
+Development_Sig<-subset(Development_Model_Output, Development_Model_Output$Development_p<cut_off)
+dim(Development_Sig)
+
+# Look at Intersection
+setwd("~/Desktop/")
+x<-list(rownames(Development_Real_Sig), rownames(Real_Sig), rownames(Development_Sig))
+venn.diagram(x, category.names = c("Development_Real_Sig" , "Real_Sig" , "Development_Sig"), fill = c("lightblue", "green3","purple"), alpha = c(0.5, 0.5,0.5), lwd =0, "venn_diagram.tiff")
+
+# Directionality
+plot_matrix<-merge(Real_Sig , Development_Sig, by='row.names')
+rownames(plot_matrix)<-plot_matrix[,1]
+ggplot(plot_matrix, aes(x=Real_Time_FC, y=Development_FC)) + geom_point(size=0.25) +  theme_bw() + labs(x = "development FC") + labs(y = "real FC") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) 
+
+# Create Leaf Age Factor
+Conditions$real_time<-Conditions$real_time+1 # add 1 as "day 0" is confusing 
+Conditions$normalized_age<- 23 + Conditions$real_time - (Conditions$development * 2) 
+
+# Plot Leaf Age Factor
+g1_watered <- ggplot(Conditions, aes(x = (real_time), y = (development), fill = normalized_age)) +geom_tile(color = "black") 
+g2_watered <- g1_watered +  scale_fill_gradient(low = "green3", high = "orange3") + theme_bw() + theme(panel.border = element_blank(),   panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +  
+xlab("") + ylab("")+ geom_text(aes(label = round(normalized_age, 2)), size = 5, color = "black")
+g2_watered +  scale_y_reverse()
