@@ -1,0 +1,87 @@
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files/")
+
+cell_types<-c('L3_whole_epidermis', 'L3_mesophyll','L3_whole_vasculature')
+
+Hormone_Response_Out<-matrix(NA,nrow=8, ncol=length(cell_types))
+
+for (a in 1:length(cell_types)){
+
+load(paste(paste(cell_types[a], sep="", collapse=""),"_hormone_response_list_rosette.RData",sep=''))
+
+# Find genes that respond to more than 2 hormones
+hormone_genes<-as.data.frame(table(c( rownames(Hormone_Response_List[[1]]),
+                                      rownames(Hormone_Response_List[[2]]),
+                                      rownames(Hormone_Response_List[[3]]),
+                                      rownames(Hormone_Response_List[[4]]),
+                                      rownames(Hormone_Response_List[[5]]),
+                                      rownames(Hormone_Response_List[[6]]),
+                                      rownames(Hormone_Response_List[[7]]),
+                                      rownames(Hormone_Response_List[[8]]))))
+hormone_genes<-subset(hormone_genes, hormone_genes[,2]<3)
+to_keep<-as.character(hormone_genes[,1])
+
+# Significance threshold and removing 3 or more hormone responder genes
+for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], Hormone_Response_List[[i]]$p_val_adj<0.1)}
+for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], rownames(Hormone_Response_List[[i]]) %in% to_keep)}
+
+Hormone_Response<-NA
+for (i in 1:8) {Hormone_Response[i]<-as.numeric(dim(Hormone_Response_List[[i]])[1])}
+
+Hormone_Response_Out[,a]<-Hormone_Response}
+
+colnames(Hormone_Response_Out)<-c("epidermis","mesophyll","vasculature")
+rownames(Hormone_Response_Out)<-c("GA","CK","SA","AUX","BR","ACC","MJ","ABA")
+plot_matrix<-melt(Hormone_Response_Out)
+colnames(plot_matrix)<-c("hormone","tissue","no_genes")
+
+plot_matrix_epidermis<-subset(plot_matrix, plot_matrix$tissue=='epidermis')
+epi_1<- ggplot(data=plot_matrix_epidermis, aes(x= no_genes, y=hormone)) + geom_bar(stat="identity", fill="orange3") 
+epi_1<- epi_1+ labs(x = "") + labs(y = "") + xlim(c(0,420)) +  theme_bw()  + theme(axis.text=element_text(size=14),axis.title=element_text(size=12))
+epi_1
+
+plot_matrix_mesophyll<-subset(plot_matrix, plot_matrix$tissue=='mesophyll')
+meso_1<- ggplot(data=plot_matrix_mesophyll, aes(x= no_genes, y=hormone)) + geom_bar(stat="identity", fill="seagreen3") 
+meso_1<- meso_1 + theme_bw() + labs(x = "") + labs(y = "") + xlim(c(0,420))  + theme(axis.text=element_text(size=14),axis.title=element_text(size=12))
+meso_1
+
+plot_matrix_vasculature<-subset(plot_matrix, plot_matrix$tissue=='vasculature')
+vasc_1<- ggplot(data=plot_matrix_vasculature, aes(x= no_genes, y=hormone)) + geom_bar(stat="identity", fill="darkorchid3") 
+vasc_1<- vasc_1 +  theme_bw()  + labs(x = "") + labs(y = "") + xlim(c(0,420))  + theme(axis.text=element_text(size=14),axis.title=element_text(size=12))
+vasc_1
+
+grid.arrange(epi_1, meso_1, vasc_1)
+
+
+
+# Export Hormone Lists
+
+# Choose Cell Type
+cell_types<-'L3_mesophyll'
+cell_types<-'L3_whole_epidermis'
+cell_types<-'L3_whole_vasculature'
+
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files/")
+load(paste(paste(cell_types, sep="", collapse=""),"_hormone_response_list_rosette.RData",sep=''))
+
+# Find genes that respond to more than 2 hormones
+hormone_genes<-as.data.frame(table(c( rownames(Hormone_Response_List[[1]]),
+                                      rownames(Hormone_Response_List[[2]]),
+                                      rownames(Hormone_Response_List[[3]]),
+                                      rownames(Hormone_Response_List[[4]]),
+                                      rownames(Hormone_Response_List[[5]]),
+                                      rownames(Hormone_Response_List[[6]]),
+                                      rownames(Hormone_Response_List[[7]]),
+                                      rownames(Hormone_Response_List[[8]]))))
+hormone_genes<-subset(hormone_genes, hormone_genes[,2]<3)
+to_keep<-as.character(hormone_genes[,1])
+
+# Significance threshold and removing 3+ hormone responder genes
+for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], Hormone_Response_List[[i]]$p_val_adj<0.1)}
+for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], rownames(Hormone_Response_List[[i]]) %in% to_keep)}
+Hormone_Response_List_Trimmed<-rbind(Hormone_Response_List[[1]],Hormone_Response_List[[2]],Hormone_Response_List[[3]],Hormone_Response_List[[4]],
+                                     Hormone_Response_List[[5]],Hormone_Response_List[[6]],Hormone_Response_List[[7]],Hormone_Response_List[[8]])
+
+#setwd("~/Desktop")
+#write.table(Hormone_Response_List_Trimmed,file="Hormone_output_mesophyll.txt",quote=F,sep="\t")
+#write.table(Hormone_Response_List_Trimmed,file="Hormone_output_epidermis.txt",quote=F,sep="\t")
+#write.table(Hormone_Response_List_Trimmed,file="Hormone_output_vasculature.txt",quote=F,sep="\t")
