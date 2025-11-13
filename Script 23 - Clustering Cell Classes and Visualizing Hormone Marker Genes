@@ -1,0 +1,103 @@
+# Clustering Cell-Classes
+
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files/")
+
+load("L3_mesophyll_subcluster_hormone.RData")
+load("L3_whole_epidermis_subcluster_hormone.RData")
+load("L3_whole_vasculature_subcluster_hormone.RData")
+
+# Re-Cluster
+DefaultAssay(object = subcluster_plant_combined_hormone) <- "integrated" 
+subcluster_plant_combined_hormone <- ScaleData(object = subcluster_plant_combined_hormone, verbose = TRUE) # vars.to.regress = c('nCount_RNA')
+subcluster_plant_combined_hormone <- RunPCA(object = subcluster_plant_combined_hormone, npcs = 10, verbose = FALSE)
+subcluster_plant_combined_hormone <- RunUMAP(object = subcluster_plant_combined_hormone, reduction = "pca", dims = 1:10)
+subcluster_plant_combined_hormone <- FindNeighbors(object = subcluster_plant_combined_hormone, reduction = "pca", dims = 1:10)
+subcluster_plant_combined_hormone <- FindClusters(subcluster_plant_combined_hormone, resolution = 0)
+DimPlot(object = subcluster_plant_combined_hormone, reduction = "umap", label=TRUE, raster=FALSE)
+DefaultAssay(object = subcluster_plant_combined_hormone) <- "RNA" 
+
+
+# Plotting Marker Genes
+
+### Mesophyll
+load("L3_mesophyll_subcluster_hormone.RData")
+DefaultAssay(object = subcluster_plant_combined_hormone) <- "RNA"
+load("L3_mesophyll_hormone_response_list_rosette.RData")
+
+# CK - Mesophyll - IBC7
+View(merge(Leaf_List,Hormone_Response_List[[2]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_CK")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_CK"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT1G10470", cols = c("grey85","red3"), split.by = 'Day') # IBC7
+VlnPlot(object = visual, features = "AT1G10470", split.by = 'Day', cols = c("red3","grey50")) 
+
+# ABA - Mesophyll - RD29A
+View(merge(Leaf_List,Hormone_Response_List[[8]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_ABA")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_ABA"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 1, features = "AT5G52310", cols = c("grey85","red3"), split.by = 'Day') # RD29A
+VlnPlot(object = visual, features = "AT5G52310", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[8]]["AT5G52310",]
+
+# BR - Mesophyll - DYL1
+View(merge(Leaf_List,Hormone_Response_List[[5]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_BR")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_BR"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT1G28330", cols = c("grey85","red3"), split.by = 'Day') 
+VlnPlot(object = visual, features = "AT1G28330", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[5]]["AT1G28330",]
+
+
+### Epidermis
+load("L3_whole_epidermis_subcluster_hormone.RData")
+DefaultAssay(object = subcluster_plant_combined_hormone) <- "RNA"
+load("L3_whole_epidermis_hormone_response_list_rosette.RData")
+
+# SA - Epidermis - ACD6
+View(merge(Leaf_List,Hormone_Response_List[[3]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_SA")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_SA"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT4G14400", cols = c("grey85","red3"), split.by = 'Day') 
+VlnPlot(object = visual, features = "AT4G14400", split.by = 'Day', cols = c("grey50","red3")) 
+Hormone_Response_List[[3]]["AT4G14400",]
+
+# GA - Epidermis - EXP1
+View(merge(Leaf_List,Hormone_Response_List[[1]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_GA")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_GA"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT1G69530", cols = c("grey85","red3"), split.by = 'Day')
+VlnPlot(object = visual, features = "AT1G69530", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[1]]["AT1G69530",]
+
+# MJ - Epidermis - LOX2
+View(merge(Leaf_List,Hormone_Response_List[[7]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_MJ")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_MJ"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT3G45140", cols = c("grey85","red3"), split.by = 'Day') 
+VlnPlot(object = visual, features = "AT3G45140", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[7]]["AT3G45140",]
+
+
+
+
+### Vasculature
+load("L3_whole_vasculature_subcluster_hormone.RData")
+DefaultAssay(object = subcluster_plant_combined_hormone) <- "RNA"
+load("L3_whole_vasculature_hormone_response_list_rosette.RData")
+
+# AUX - Vasculature - CLEL9
+View(merge(Leaf_List,Hormone_Response_List[[4]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_AUX")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_AUX"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT5G64770", cols = c("grey85","red3"), split.by = 'Day') 
+VlnPlot(object = visual, features = "AT5G64770", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[4]]["AT5G64770",]
+
+# ACC - Vasculature - ERF72
+View(merge(Leaf_List,Hormone_Response_List[[6]], by='row.names'))
+visual<-subcluster_plant_combined_hormone[,subcluster_plant_combined_hormone$Day %in% c("Hormone_Mock","Hormone_ACC")]
+Idents(visual)<-factor(visual$Day, levels = c("Hormone_Mock", "Hormone_MJ"))
+FeaturePlot(object = visual, reduction = "umap", label=FALSE, raster=FALSE, pt.size = 0.5, features = "AT3G16770", cols = c("grey85","red3"), split.by = 'Day') 
+VlnPlot(object = visual, features = "AT3G16770", split.by = 'Day', cols = c("red3","grey50")) 
+Hormone_Response_List[[6]]["AT3G16770",]
+
