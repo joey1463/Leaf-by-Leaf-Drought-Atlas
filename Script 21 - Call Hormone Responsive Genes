@@ -1,0 +1,31 @@
+library(Seurat)
+
+Tissue_Specific_Hormones<-function(subcluster_plant_combined_hormone, chosen_cluster = "epidermis"){
+    subcluster_plant_combined_hormone<-subcluster_plant_combined_hormone
+    DefaultAssay(object = subcluster_plant_combined_hormone) <- "RNA" 
+    Idents(subcluster_plant_combined_hormone)<-subcluster_plant_combined_hormone$Day
+
+    DE_Cluster_Genes<-function(a,test_sample){
+    response_cluster <- FindMarkers(subcluster_plant_combined_hormone, ident.1 = test_sample , ident.2 = "Hormone_Mock", verbose = FALSE)
+    response_significant<-subset(response_cluster, response_cluster$p_val_adj<0.1)
+    response_significant[,6]<-rep(test_sample, length(response_significant[,1]))
+    response_significant}
+    
+    Hormones_to_Test<-c("Hormone_GA","Hormone_CK","Hormone_SA","Hormone_AUX","Hormone_BR","Hormone_ACC","Hormone_MJ","Hormone_ABA")
+    
+    Hormone_Response_List<-list(NA)
+    for (i in 1:8) { Hormone_Response_List[[i]]<- DE_Cluster_Genes(i,Hormones_to_Test[i])}
+
+     save(Hormone_Response_List, file = paste('L3',paste(chosen_cluster, sep="", collapse=""),"hormone_response_list_rosette.RData",sep='_'))}
+
+# Whole Epidermis
+load("L3_whole_epidermis_subcluster_hormone.RData")
+Tissue_Specific_Hormones(subcluster_plant_combined_hormone,chosen_cluster = "whole_epidermis")
+
+# Whole Vasculature
+load("L3_whole_vasculature_subcluster_hormone.RData")
+Tissue_Specific_Hormones(subcluster_plant_combined_hormone,chosen_cluster = "whole_vasculature")
+
+# Mesophyll
+load("L3_mesophyll_subcluster_hormone.RData")
+Tissue_Specific_Hormones(subcluster_plant_combined_hormone,chosen_cluster = "mesophyll") 
