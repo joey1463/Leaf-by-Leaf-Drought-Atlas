@@ -1,0 +1,88 @@
+library(Seurat)
+library(DESeq2)
+library(EDASeq)
+ 
+load("L1_plant_combined.RData")
+
+DefaultAssay(object = plant_combined) <- "RNA" 
+subcluster_plant_combined_rosette<-plant_combined[,plant_combined$experiment_type %in% c('rosette')]
+subcluster_plant_combined_rosette<-subcluster_plant_combined_rosette[,substr(colnames(subcluster_plant_combined_rosette),11,13) %in% c("R01","R02","R03")] # this is your second bigger rep
+subcluster_plant_combined_rosette$leaf_identity<-substr(colnames(subcluster_plant_combined_rosette),1,9)
+Idents(subcluster_plant_combined_rosette) <-subcluster_plant_combined_rosette$leaf_identity
+pseudobulk<-AggregateExpression(object = subcluster_plant_combined_rosette, slot = "counts", group.by = "leaf_identity")
+pseudobulk<-as.data.frame(pseudobulk[[1]])
+pseudobulk<-pseudobulk[,as.numeric(substr(colnames(pseudobulk),2,3)) %in% c(0:8)] # remove re-water control, as should be tested seperately 
+    
+maxes<-rowSums(pseudobulk) #hist(log(maxes,2),breaks=1000, xlim=c(1,15), ylim=c(0,100))
+pseudobulk<-pseudobulk[maxes>500,] # normalization improves as you go higher 
+
+    # Define Factors
+factor_list<-colnames(pseudobulk)
+Conditions<-data.frame(development=as.numeric(substr(factor_list,8,9)),real_time=as.numeric(substr(factor_list,2,3)),treatment=substr(factor_list,5,5), row.names = colnames(pseudobulk))
+    # Incorporating Drought Factor 
+pot_total_weights<-log(c(100, 89.9, 82.2, 69, 59.4, 48.3, 38.1, 28.8, 21.7, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100),2) # logging improves two-model gene recovery
+drought_quantitative<-NA
+for (i in 1:length(Conditions[,1])) {     if (Conditions[i,3] == "W") {drought_quantitative[i] <- pot_total_weights[1]}
+                                          if (Conditions[i,3] == "D") {if (substr(rownames(Conditions)[i],1,3) == 'D00') {drought_quantitative[i] <- pot_total_weights[1]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D01') {drought_quantitative[i] <- pot_total_weights[2]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D02') {drought_quantitative[i] <- pot_total_weights[3]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D03') {drought_quantitative[i] <- pot_total_weights[4]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D04') {drought_quantitative[i] <- pot_total_weights[5]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D05') {drought_quantitative[i] <- pot_total_weights[6]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D06') {drought_quantitative[i] <- pot_total_weights[7]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D07') {drought_quantitative[i] <- pot_total_weights[8]}
+                                                                       if (substr(rownames(Conditions)[i],1,3) == 'D08') {drought_quantitative[i] <- pot_total_weights[9]}}}
+Conditions[,3]<-drought_quantitative
+    
+    # Development + Real Time + Treatment
+DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ development + real_time + treatment)) 
+pseudo_bulk_normalized<- counts(estimateSizeFactors(DEmat), normalized=TRUE)
+   
+    # summary statistics
+pdf("L1_summary_statistics_rosette_3-way.pdf")
+par(mfrow=c(3,2)) 
+barplot(table(subcluster_plant_combined_rosette$leaf_identity))
+barplot(colSums(pseudobulk))
+hist(log(rowSums(pseudobulk),2),breaks=1000)
+hist(log(colSums(pseudobulk),2),breaks=1000)
+barplot(colSums(pseudo_bulk_normalized))
+dev.off()
+
+    # Development + Time + Drought    
+    Three_Model_Output<-as.data.frame(cbind(results(DESeq(DEmat, test='LRT', reduced = ~ real_time + treatment))[,c(2,6)], # development
+                                             results(DESeq(DEmat, test='LRT', reduced = ~ development + treatment))[,c(2,6)], # real_time
+                                             results(DESeq(DEmat, test='LRT', reduced = ~ development + real_time))[,c(2,6)])) # treatment
+    
+    colnames(Three_Model_Output)<-c('Development_FC','Development_p','Real_Time_FC','Real_Time_p','Treatment_FC','Treatment_p')
+    rownames(Three_Model_Output)<-rownames(pseudo_bulk_normalized) 
+    
+    # Development + Time
+    DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ development + real_time)) 
+    Development_Real_Model_Output<-as.data.frame(cbind(results(DESeq(DEmat, test='LRT', reduced = ~ real_time))[,c(2,6)],
+                                                       results(DESeq(DEmat, test='LRT', reduced = ~ development))[,c(2,6)]))
+    colnames(Development_Real_Model_Output)<-c('Development_FC','Development_p','Real_Time_FC','Real_Time_p')
+    rownames(Development_Real_Model_Output)<-rownames(pseudo_bulk_normalized)
+    
+    # Development
+    DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ development)) 
+    Development_Model_Output<-as.data.frame(results(DESeq(DEmat, test='LRT', reduced = ~ 1))[,c(2,6)])
+    colnames(Development_Model_Output)<-c('Development_FC','Development_p')
+    rownames(Development_Model_Output)<-rownames(pseudo_bulk_normalized)
+    
+    # Time
+    DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ real_time)) 
+    Real_Model_Output<-as.data.frame(results(DESeq(DEmat, test='LRT', reduced = ~ 1))[,c(2,6)])
+    colnames(Real_Model_Output)<-c('Real_Time_FC','Real_Time_p')
+
+    # Treatment 
+    DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ treatment)) 
+    Treatment_Model_Output<-as.data.frame(results(DESeq(DEmat, test='LRT', reduced = ~ 1))[,c(2,6)])
+    colnames(Treatment_Model_Output)<-c('Treatment_FC','Treatment_p')
+  
+Multivariate_List<-list(Three_Model_Output, 
+                        Development_Real_Model_Output, 
+                        Development_Model_Output, Real_Model_Output, Treatment_Model_Output)
+    
+save(Multivariate_List, file = "L1_multivariate_list_rosette_3-way.RData")
+save(pseudo_bulk_normalized, file ="L1_pseudo_bulk_normalized_rosette_3-way.RData")
+save(Conditions, file = "L1_conditions_rosette_3-way.RData")
