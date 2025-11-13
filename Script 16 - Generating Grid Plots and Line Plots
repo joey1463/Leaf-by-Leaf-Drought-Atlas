@@ -160,3 +160,50 @@ plot_4<- plot_3 + geom_smooth(method = "gam", formula = y ~ poly(x, 3), level=0.
 
 plot_4 + theme(legend.position = 'none')+ xlab("") +ylab("") + ylim(c(0,1000))
 plot_4 + theme(legend.position = 'none')+ xlab("") +ylab("") + ylim(c(0,2100))
+
+
+# Dot Plot for Well-Watered and Drought Conditions
+dot_plot<-function(chosen_gene, color){
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == chosen_gene))
+  Chosen_Gene<-Chosen_Gene[,-1]
+  rownames(Chosen_Gene)<-Chosen_Gene[,1]
+  Chosen_Gene<-merge(Chosen_Gene, Conditions, by='row.names')
+  Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$real_time %in% c(0:8))
+  Chosen_Gene$status<-substr(Chosen_Gene$Var2,5,5)
+  Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$treatment == max(Chosen_Gene$treatment))
+  ggplot(data=Chosen_Gene, aes(x=normalized_age, y=value)) + geom_point(size=1) + theme_bw() +theme(legend.position = 'none') + scale_color_manual(values=c(color))  + labs(x = '', y = '')  + theme(axis.text=element_text(size=12))  + theme(axis.text=element_text(size=14),axis.title=element_text(size=12)) } #  + ylim(c(0,60)) + xlim(c(0,30))
+
+multi_dot_plot <- function(gene_list, color_vector) {
+  all_genes_data <- lapply(gene_list, function(gene) {
+    df <- melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == gene))
+    df <- df[, -1]
+    rownames(df) <- df[, 1]
+    df <- merge(df, Conditions, by = 'row.names')
+    df <- subset(df, real_time %in% 0:8)
+    df$status <- substr(df$Var2, 5, 5)
+    df <- subset(df, treatment == max(df$treatment))
+
+    # Normalize expression values
+    df$value <- (df$value - min(df$value)) / (max(df$value) - min(df$value))
+    df$Gene <- gene
+    return(df)
+  })
+
+  combined_df <- do.call(rbind, all_genes_data)
+
+  ggplot(combined_df, aes(x = normalized_age, y = value, color = Gene, fill = Gene)) +
+  geom_point(size = 1, alpha = 0.3) +
+  geom_smooth(method = "gam", formula = y ~ poly(x, 3), se = TRUE, linewidth = 1, alpha = 0.3) +
+  scale_color_manual(values = color_vector) +
+  scale_fill_manual(values = color_vector) +
+  theme_bw() + 
+  labs(x = '', y = '') +
+  theme(axis.text = element_text(size = 14),
+        axis.title = element_text(size = 12),
+        legend.title = element_blank()) + theme(legend.position = 'none')
+  
+}
+multi_dot_plot(
+  gene_list = c('AT1G56010','AT5G52310','AT1G70210', 'AT5G47500','AT5G06150'),
+  color_vector = c("red3", "deepskyblue1", "darkorchid2", "springgreen3","yellow3")
+)
