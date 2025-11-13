@@ -1,0 +1,162 @@
+# Grid Plot for Well-Watered Conditions
+plot_grid<-function(gene_name, color){
+
+Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == gene_name))
+
+Chosen_Gene<-Chosen_Gene[,-1]
+Chosen_Gene[,3]<-as.numeric(substring(Chosen_Gene[,1],2,3)) # day
+Chosen_Gene[,4]<-as.numeric(substring(Chosen_Gene[,1],5,5) == 'W') # treatment
+Chosen_Gene[,5]<-as.numeric(substring(Chosen_Gene[,1],8,9)) # leaf
+colnames(Chosen_Gene)<-c('identity','value','day','treatment','leaf_no')
+#Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$day %in% c(0:8)) # removing re-watering control
+adder<-subset(Chosen_Gene, Chosen_Gene$day == 0) # replicating day 0 for both grids. 
+adder$treatment<-rep(0, length(adder[,1]))
+Chosen_Gene<-rbind(Chosen_Gene, adder)
+
+Chosen_Gene_Watered<-subset(Chosen_Gene, Chosen_Gene$treatment == 1) # 1 is WW, 0 is drought
+Chosen_Gene_Watered<-Chosen_Gene_Watered[order(Chosen_Gene_Watered$day),]
+Chosen_Gene_Watered<-Chosen_Gene_Watered[order(Chosen_Gene_Watered$leaf_no),]
+
+Chosen_Gene_Drought<-subset(Chosen_Gene, Chosen_Gene$treatment == 0)
+Chosen_Gene_Drought<-Chosen_Gene_Drought[order(Chosen_Gene_Drought$day),]
+Chosen_Gene_Drought<-Chosen_Gene_Drought[order(Chosen_Gene_Drought$leaf_no),]
+
+g1_watered<- qplot(as.factor(day), as.factor(leaf_no), fill=value,data=Chosen_Gene_Watered, geom='tile')
+g2_watered<- g1_watered + scale_fill_gradient(low="white", high=color) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank()) +  xlab("") + ylab("") #+ theme(legend.position = 'none') 
+
+grid.arrange(g2_watered,nrow=1)
+}
+
+plot_grid("AT1G70210", "blue4") # CYCD1;1 (epidermis)
+plot_grid("AT1G56010", "red4") # KMD1 (epidermis)
+
+plot_grid("AT1G29910", "blue4") # CAB3 (mesophyll)
+plot_grid("AT2G17840", "red4") # ERD7 (mesophyll)
+
+plot_grid("AT5G20630", "blue4") # GLP3 (guard)
+plot_grid("AT2G15080", "red4") # RLP19 (guard)
+
+plot_grid("AT1G12110", "blue4") # NRT1.1 (phloem) 
+plot_grid("AT5G23020", "red4") # IMS2 (phloem) 
+
+plot_grid("AT1G75750", "red4") # GASA1 (xylem)
+plot_grid("AT2G03090", "blue4") # EXP15 (xylem)
+
+plot_grid("AT5G19140", "red4") # AILP1 (bundle sheath)
+plot_grid("AT3G04290", "blue4") # ATLTL1 (bundle sheath)
+
+plot_grid("AT5G06150", "blue4") # CYCB1 (proilferation)
+plot_grid("AT2G43010", "blue4") # PIF4 (expansion)
+plot_grid("AT5G39610", "blue4") # ORE1 (senesence)
+ 
+	
+
+# Dot Plot for Well-Watered and Drought Conditions
+dot_plot<-function(chosen_gene, color){
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == chosen_gene))
+  Chosen_Gene<-Chosen_Gene[,-1]
+  rownames(Chosen_Gene)<-Chosen_Gene[,1]
+  Chosen_Gene<-merge(Chosen_Gene, Conditions, by='row.names')
+  Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$real_time %in% c(0:8))
+  Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$treatment == max(Chosen_Gene$treatment))
+  ggplot(data=Chosen_Gene, aes(x=normalized_age, y=value, group=as.factor(treatment))) + geom_point(size=1,aes(color=as.factor(treatment))) + theme_bw() +theme(legend.position = 'none') + scale_color_manual(values=c(color))  + labs(x = '', y = '')  + theme(axis.text=element_text(size=12)) + xlim(c(0,30)) + theme(axis.text=element_text(size=14),axis.title=element_text(size=12)) } #  + ylim(c(0,60)) 
+
+dot_plot("AT1G56010", "red4")  # KMD1 (epidermis) #  + ylim(c(0,60)) 
+
+grid.arrange(dot_plot("AT1G56010", "red4"),  # KMD1 (epidermis)
+             dot_plot("AT1G70210", "blue4"),nrow=1)  # CYCD1;1 (epidermis)
+
+grid.arrange(dot_plot("AT2G17840", "red4"),  # ERD7 (mesophyll)
+             dot_plot("AT1G29910", "blue4"),nrow=1)  # CAB3 (mesophyll)
+
+grid.arrange(dot_plot("AT2G15080", "red4"),  # RLP19 (guard)
+             dot_plot("AT5G20630", "blue4"),nrow=1)    # GLP3 (guard)
+
+grid.arrange(dot_plot("AT5G23020", "red4"),  # IMS2 (phloem) 
+             dot_plot("AT1G12110", "blue4"),nrow=1)   # NRT1.1 (phloem) 
+
+grid.arrange(dot_plot("AT1G75750", "red4"),         # GASA1 (xylem)
+             dot_plot("AT2G03090", "blue4"),nrow=1) # EXP15 (xylem) 
+
+grid.arrange(dot_plot("AT5G19140", "red4"), # AILP1 (bundle sheath)
+             dot_plot("AT3G04290" , "blue4"),nrow=1)  # ATLTL1 (bundle sheath)
+
+
+
+
+# Grid Plot for Well-Watered and Drought Conditions
+plot_grid<-function(gene_name,color){
+
+Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == gene_name))
+
+Chosen_Gene<-Chosen_Gene[,-1]
+Chosen_Gene[,3]<-as.numeric(substring(Chosen_Gene[,1],2,3)) # day
+Chosen_Gene[,4]<-as.numeric(substring(Chosen_Gene[,1],5,5) == 'W') # treatment
+Chosen_Gene[,5]<-as.numeric(substring(Chosen_Gene[,1],8,9)) # leaf
+colnames(Chosen_Gene)<-c('identity','value','day','treatment','leaf_no')
+#Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$day %in% c(0:8)) # removing re-watering control
+adder<-subset(Chosen_Gene, Chosen_Gene$day == 0) # replicating day 0 for both grids. 
+adder$treatment<-rep(0, length(adder[,1]))
+Chosen_Gene<-rbind(Chosen_Gene, adder)
+#Chosen_Gene$value<-log(Chosen_Gene$value,2)
+#Chosen_Gene$value[Chosen_Gene$value == "-Inf"] <- 0
+
+Chosen_Gene_Watered<-subset(Chosen_Gene, Chosen_Gene$treatment == 1) # 1 is WW, 0 is drought
+Chosen_Gene_Watered<-Chosen_Gene_Watered[order(Chosen_Gene_Watered$day),]
+Chosen_Gene_Watered<-Chosen_Gene_Watered[order(Chosen_Gene_Watered$leaf_no),]
+
+Chosen_Gene_Drought<-subset(Chosen_Gene, Chosen_Gene$treatment == 0)
+Chosen_Gene_Drought<-Chosen_Gene_Drought[order(Chosen_Gene_Drought$day),]
+Chosen_Gene_Drought<-Chosen_Gene_Drought[order(Chosen_Gene_Drought$leaf_no),]
+
+upper_limit<-max(c(Chosen_Gene_Watered$value,Chosen_Gene_Drought$value))
+
+g1_watered<- qplot(as.factor(day), as.factor(leaf_no), fill=value, data=Chosen_Gene_Watered, geom='tile')
+g2_watered<- g1_watered + scale_fill_gradient(low="white", high=color, limits=c(0,upper_limit)) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank()) # firebrick4 # blue4
+
+g1_drought<- qplot(as.factor(day), as.factor(leaf_no), fill=value, data=Chosen_Gene_Drought, geom='tile')
+g2_drought<- g1_drought  + scale_fill_gradient(low="white", high=color, limits=c(0,upper_limit)) + theme_bw() + theme(panel.border = element_blank(), panel.grid.major = element_blank(),
+panel.grid.minor = element_blank())
+
+grid.arrange(g2_watered,g2_drought,nrow=1)
+}
+
+plot_grid("AT5G67260","blue4") # CYD3;2 (mesophyll)
+plot_grid("AT5G52310","red4") # RD29A (mesophyll)
+
+
+
+# Plot Gene Across All Days of Drought
+plot_line<-function(chosen_gene, day){
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == chosen_gene))
+  Chosen_Gene<-Chosen_Gene[,-1]
+  rownames(Chosen_Gene)<-Chosen_Gene[,1]
+  Chosen_Gene<-merge(Chosen_Gene, Conditions, by='row.names')
+  Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$real_time %in% c(day))
+  plot_1<-ggplot(data=Chosen_Gene, aes(x=normalized_age, y=value, group=as.factor(treatment))) 
+  plot_2<- plot_1 + geom_point(size=0.2,aes(color=as.factor(treatment))) +  theme_bw() # + ylim(c(0,2500))
+  plot_3<- plot_2 + scale_color_manual(values = c("red4","blue4")) 
+  plot_4<- plot_3 + geom_smooth(method = "loess",level=0.95, aes(color=as.factor(treatment), fill=as.factor(treatment)), se=TRUE) 
+  plot_4+ theme(legend.position = 'none') + ylim(c(0,2000))} 
+grid.arrange(plot_line("AT5G49730",1),plot_line("AT5G49730",2),plot_line("AT5G49730",3) ,plot_line("AT5G49730",4) ,plot_line("AT5G49730",5),plot_line("AT5G49730",6),plot_line("AT5G49730",7),plot_line("AT5G49730",8),nrow=1)
+
+
+# Single Gene Plot 
+chosen_gene<-"AT5G49730" # FRO6
+chosen_gene<-"AT4G28080" # TSS
+
+Chosen_Gene<-melt(subset(pseudo_bulk_normalized_three_way, rownames(pseudo_bulk_normalized_three_way) == chosen_gene))
+Chosen_Gene<-Chosen_Gene[,-1]
+rownames(Chosen_Gene)<-Chosen_Gene[,1]
+Chosen_Gene<-merge(Chosen_Gene, Conditions, by='row.names')
+Chosen_Gene<-subset(Chosen_Gene, Chosen_Gene$real_time %in% c(5,6,7,8))
+Chosen_Gene$status<-substr(Chosen_Gene$Var2,5,5)
+plot_1<-ggplot(data=Chosen_Gene, aes(x=normalized_age, y=value, group=status))
+plot_2<- plot_1 + geom_point(size=1,aes(color=status)) +  theme_bw() 
+plot_3<- plot_2 + scale_color_manual(values=c("red","blue"))  +  theme(axis.text=element_text(size=15)) 
+plot_4<- plot_3 + geom_smooth(method = "gam", formula = y ~ poly(x, 3), level=0.99, aes(color=status, fill=status), se=TRUE) + scale_fill_manual(values=c("red","blue"))
+
+plot_4 + theme(legend.position = 'none')+ xlab("") +ylab("") + ylim(c(0,1000))
+plot_4 + theme(legend.position = 'none')+ xlab("") +ylab("") + ylim(c(0,2100))
