@@ -1,0 +1,94 @@
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+
+# Read in pseudo-bulk data
+load("plant_combined_average_expression.RData")
+dim(plant_combined_average_expression)
+
+plant_combined_average_expression_watered<-plant_combined_average_expression[,substr(colnames(plant_combined_average_expression),5,5) == "W"] 
+
+# Read in significant genes 
+chosen_cluster<-c("L3_epidermis","L3_mesophyll","L3_phloem","L3_xylem","L3_bundle_sheath","L3_guard")
+
+DE_genes_upregulated<-list(NA)
+DE_genes_downregulated<-list(NA)
+for (i in 1:length(chosen_cluster)){
+  load(paste(paste(chosen_cluster[i], sep="", collapse=""),"_multivariate_list_rosette.RData",sep=''))
+  
+  cut_off<-0.01
+  fold_change_upregulated<-0.075
+  fold_change_downregulated<- -0.075 
+  
+  Two_Model_Output_Sig<-Multivariate_List[[1]]
+  Development_Output_Sig<-Multivariate_List[[2]]
+
+  # upregulated
+  Two_Model_Output_Sig_up<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & Two_Model_Output_Sig$Development_FC > fold_change_upregulated)
+  Development_Output_Sig_up<-subset(Development_Output_Sig, Development_Output_Sig$padj<cut_off & Development_Output_Sig$log2FoldChange > fold_change_upregulated)
+  DE_genes_upregulated[[i]]<-c(rownames(Two_Model_Output_Sig_up),rownames(Development_Output_Sig_up))
+  
+  # downregulated
+  Two_Model_Output_Sig_down<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & Two_Model_Output_Sig$Development_FC < fold_change_downregulated)
+  Development_Output_Sig_down<-subset(Development_Output_Sig, Development_Output_Sig$padj<cut_off & Development_Output_Sig$log2FoldChange < fold_change_downregulated)
+  DE_genes_downregulated[[i]]<-c(rownames(Two_Model_Output_Sig_down),rownames(Development_Output_Sig_down))
+  }
+
+# Shared
+shared_up <- Reduce(intersect, list(DE_genes_upregulated[[1]], DE_genes_upregulated[[2]], DE_genes_upregulated[[3]], DE_genes_upregulated[[4]], DE_genes_upregulated[[5]], DE_genes_upregulated[[6]]))
+shared_down <- Reduce(intersect, list(DE_genes_downregulated[[1]], DE_genes_downregulated[[2]], DE_genes_downregulated[[3]], DE_genes_downregulated[[4]], DE_genes_downregulated[[5]], DE_genes_downregulated[[6]]))
+
+# Epidermis
+epidermis_up<-setdiff(DE_genes_upregulated[[1]], c(DE_genes_upregulated[[2]],DE_genes_upregulated[[3]],DE_genes_upregulated[[4]], DE_genes_upregulated[[5]], DE_genes_upregulated[[6]], DE_genes_upregulated[[6]])) 
+epidermis_down<-setdiff(DE_genes_downregulated[[1]], c(DE_genes_downregulated[[2]],DE_genes_downregulated[[3]],DE_genes_downregulated[[4]], DE_genes_downregulated[[5]], DE_genes_downregulated[[6]], DE_genes_downregulated[[6]]))
+
+# Phloem
+phloem_up<-setdiff(DE_genes_upregulated[[3]], c(DE_genes_upregulated[[1]],DE_genes_upregulated[[2]],DE_genes_upregulated[[4]], DE_genes_upregulated[[5]], DE_genes_upregulated[[6]]))
+phloem_down<-setdiff(DE_genes_downregulated[[3]], c(DE_genes_downregulated[[1]],DE_genes_downregulated[[2]],DE_genes_downregulated[[4]], DE_genes_downregulated[[5]], DE_genes_downregulated[[6]])) 
+
+# Mesophyll
+mesophyll_up<-setdiff(DE_genes_upregulated[[2]],  c(DE_genes_upregulated[[1]],DE_genes_upregulated[[3]],DE_genes_upregulated[[4]], DE_genes_upregulated[[5]], DE_genes_upregulated[[6]])) 
+mesophyll_down<-setdiff(DE_genes_downregulated[[2]], c(DE_genes_downregulated[[1]],DE_genes_downregulated[[3]],DE_genes_downregulated[[4]], DE_genes_downregulated[[5]], DE_genes_downregulated[[6]])) 
+
+# Xylem
+xylem_up<-setdiff(DE_genes_upregulated[[4]], c(DE_genes_upregulated[[1]],DE_genes_upregulated[[2]],DE_genes_upregulated[[3]], DE_genes_upregulated[[5]], DE_genes_upregulated[[6]]))
+xylem_down<-setdiff(DE_genes_downregulated[[4]], c(DE_genes_downregulated[[1]],DE_genes_downregulated[[2]],DE_genes_downregulated[[3]], DE_genes_downregulated[[5]], DE_genes_downregulated[[6]])) 
+
+# Bundle Sheath
+bundle_sheath_up<-setdiff(DE_genes_upregulated[[5]], c(DE_genes_upregulated[[1]],DE_genes_upregulated[[2]],DE_genes_upregulated[[3]], DE_genes_upregulated[[4]], DE_genes_upregulated[[6]]))
+bundle_sheath_down<-setdiff(DE_genes_downregulated[[5]], c(DE_genes_downregulated[[1]],DE_genes_downregulated[[2]],DE_genes_downregulated[[3]], DE_genes_downregulated[[4]], DE_genes_downregulated[[6]])) 
+
+# Guard
+guard_up<-setdiff(DE_genes_upregulated[[6]], c(DE_genes_upregulated[[1]],DE_genes_upregulated[[2]],DE_genes_upregulated[[3]], DE_genes_upregulated[[4]], DE_genes_upregulated[[5]]))
+guard_down<-setdiff(DE_genes_downregulated[[6]], c(DE_genes_downregulated[[1]],DE_genes_downregulated[[2]],DE_genes_downregulated[[3]], DE_genes_downregulated[[4]], DE_genes_downregulated[[5]])) 
+
+
+# Plot Function
+plot_function<-function(candidate_genes, cell_typer, color){
+candidate_genes<-subset(plant_combined_average_expression_watered, rownames(plant_combined_average_expression_watered) %in% candidate_genes) 
+Z <- as.data.frame(t(scale(t(candidate_genes))))
+#Z_average<-colSums(Z)/length(Z[,1])
+#Z<-rbind(Z, Z_average)
+#rownames(Z)[length(Z[,1])]<-"average"
+plot_matrix<-melt(t(Z))
+factored<-as.character(plot_matrix[,1])
+time<-substr(factored,1,3)
+time<-str_remove(time, "D") 
+time<-as.numeric(str_remove(time, "_"))
+plot_matrix[,4]<-time
+cell_type<-substr(factored,11,40)
+plot_matrix[,5]<-cell_type
+#plot_matrix[,6]<-as.numeric(plot_matrix[,2] == 'average')
+colnames(plot_matrix)<-c("sample","gene","expression","time","cell_type") # ,"color"
+#plot_matrix<-subset(plot_matrix, plot_matrix$gene %in% c('average'))
+plot_matrix[,1]<-substr(as.character(plot_matrix[,1]),1,9)
+plot_matrix<-merge(plot_matrix, Conditions, by.x='sample',by.y='row.names') # some go missing? not sure why i need this?
+plot_matrix$cell_type[plot_matrix$cell_type != cell_typer] <- "average"
+title<-paste(dim(candidate_genes)[1],"genes",sep=" ")
+# note that geom_smooth of all genes with CI looks exactly the same as 'averaged' Z score calculation. Computing 99% confidence interval
+ggplot(data=plot_matrix, aes(x=normalized_age, y=expression, group=cell_type)) +geom_smooth(method = "gam", formula = y ~ poly(x, 3), aes(color=cell_type,fill=cell_type),level=0.99, se=TRUE) +  theme_bw() + labs(title=title)  + theme(plot.title = element_text(size = 10))   + xlab("") + ylab("") + scale_color_manual(values=c('grey60',color)) + scale_fill_manual(values=c('grey60',color)) + theme(axis.text=element_text(size=14),axis.title=element_text(size=12)) + theme(legend.position = 'none') }
+
+grid.arrange(plot_function(epidermis_up, "epidermis", 'red4'), plot_function(epidermis_down, "epidermis", 'blue4'),nrow=1)
+grid.arrange(plot_function(mesophyll_up, "mesophyll", 'red4') , plot_function(mesophyll_down, "mesophyll", 'blue4'),nrow=1)
+grid.arrange(plot_function(guard_up, "guard", 'red4'), plot_function(guard_down, "guard", 'blue4'),nrow=1)
+grid.arrange(plot_function(phloem_up, "phloem", 'red4'), plot_function(phloem_down, "phloem", 'blue4'),nrow=1)
+grid.arrange(plot_function(xylem_up, "xylem", 'red4'), plot_function(xylem_down, "xylem", 'blue4'),nrow=1)
+grid.arrange(plot_function(bundle_sheath_up, "bundle_sheath", 'red4'), plot_function(bundle_sheath_down, "bundle_sheath", 'blue4'),nrow=1)
