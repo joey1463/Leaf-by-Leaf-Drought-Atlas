@@ -1,0 +1,55 @@
+# Read in Genes
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+chosen_cluster<-c("L3_epidermis","L3_mesophyll","L3_phloem","L3_xylem","L3_bundle_sheath","L3_guard")
+
+DE_genes<-list(NA)
+for (i in 1:length(chosen_cluster)){
+  load(paste(paste(chosen_cluster[i], sep="", collapse=""),"_multivariate_list_rosette.RData",sep=''))
+  
+  cut_off<-0.01 
+  fold_change<-0.04 
+  
+  Two_Model_Output_Sig<-Multivariate_List[[1]]
+  Two_Model_Output_Sig<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & abs(Two_Model_Output_Sig$Development_FC)>fold_change)
+
+  DE_genes[[i]]<-cbind(Two_Model_Output_Sig,chosen_cluster[i])}
+
+DE_genes<-rbind(DE_genes[[1]],DE_genes[[2]],DE_genes[[3]],DE_genes[[4]],DE_genes[[5]],DE_genes[[6]])
+DE_genes$Treatment_FC<-DE_genes$Treatment_FC*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+
+
+DE_genes["AT5G67260",] # CYD3;2 (mesophyll)
+DE_genes["AT5G52310",] # RD29A (mesophyll)
+DE_genes["AT5G49730",] # FRO6
+
+
+# Directionality Plot
+ggplot(DE_genes, aes(x=Development_FC, y=Treatment_FC,color = as.factor(DE_genes[,5]))) + geom_point(size=0.75) +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) + xlim(c(-0.3,0.3)) + ylim(c(-1,1.5)) +theme(axis.text=element_text(size=15)) + scale_color_manual(values=c("darkorchid4","tan2","orange3","springgreen4","deeppink3","hotpink4")) + theme(legend.position = "none")
+
+
+# Plot Individual Cell Types for Supplementary 
+setwd("~/Desktop")
+
+# Mesophyll
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_mesophyll"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color ="springgreen4") +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_mesophyll"),file="mesophyll.txt",quote=F,sep="\t")
+
+# Epidermis
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_epidermis"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color = "orange3") +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_epidermis"),file="epidermis.txt",quote=F,sep="\t")
+
+# Guard
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_guard"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color = "tan2") +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_guard"),file="guard.txt",quote=F,sep="\t")
+
+# Phloem
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_phloem"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color = "hotpink4") +  theme_bw() + labs(x = "") + labs(y = "") +  geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_phloem"),file="phloem.txt",quote=F,sep="\t")
+
+# Xylem
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_xylem"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color = "deeppink3") +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_xylem"),file="xylem.txt",quote=F,sep="\t")
+
+# Bundle Sheath
+ggplot(subset(DE_genes, DE_genes[,5] == "L3_bundle_sheath"), aes(x=Development_FC, y=Treatment_FC)) + geom_point(size=0.75, color = "darkorchid4") +  theme_bw() + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +geom_hline(yintercept=0, color = "black", size=0.5) +theme(axis.text=element_text(size=12))
+write.table(subset(DE_genes, DE_genes[,5] == "L3_bundle_sheath"),file="bundle_sheath.txt",quote=F,sep="\t")
