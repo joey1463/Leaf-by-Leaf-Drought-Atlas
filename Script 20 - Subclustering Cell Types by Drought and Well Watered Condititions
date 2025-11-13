@@ -1,0 +1,79 @@
+library(viridis)
+library(Seurat)
+library(ggplot2)
+
+#setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files/")
+chosen_cluster<-'L3_epidermis'
+chosen_cluster<-'L3_phloem'
+chosen_cluster<-'L3_mesophyll'
+chosen_cluster<-'L3_xylem'
+chosen_cluster<-'L3_bundle_sheath'
+chosen_cluster<-'L3_guard'
+
+# Read in Data
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_subcluster_rosette.RData",sep=''))
+DefaultAssay(object = subcluster_plant_combined_rosette) <- "RNA" 
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_multivariate_list_rosette.RData",sep=''))
+
+Two_Model_Output_Sig<-Multivariate_List[[1]]
+Treatment_Output_Sig<-Multivariate_List[[3]]
+Treatment_Output_Sig$log2FoldChange<-Treatment_Output_Sig$log2FoldChange*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+
+# Subset For Significance and Fold Change
+cut_off<-0.01 
+fold_change<-0.04
+Two_Model_Output_Sig<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & abs(Two_Model_Output_Sig$Development_FC)>fold_change)
+Two_Model_Output_Sig$Treatment_FC<-Two_Model_Output_Sig$Treatment_FC*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+Treatment_Output_Sig<-subset(Treatment_Output_Sig, Treatment_Output_Sig$padj<cut_off) 
+
+# Generate Final Variable Gene List
+genes_to_test<-c(rownames(subset(Two_Model_Output_Sig, Two_Model_Output_Sig$Treatment_p<0.001)), rownames(subset(Treatment_Output_Sig, Treatment_Output_Sig$padj<0.001)))
+subcluster_plant_combined_rosette <- subcluster_plant_combined_rosette[genes_to_test,]
+
+# Compute SCT for Renormalization 
+subcluster_plant_combined_rosette<- SCTransform(subcluster_plant_combined_rosette, verbose = TRUE) 
+subcluster_plant_combined_rosette<- RunPCA(object = subcluster_plant_combined_rosette, npcs = 8, verbose = FALSE)
+subcluster_plant_combined_rosette<- RunUMAP(object = subcluster_plant_combined_rosette, reduction = "pca", dims = 1:8) 
+subcluster_plant_combined_rosette<- FindNeighbors(object = subcluster_plant_combined_rosette, reduction = "pca", dims = 1:8)
+subcluster_plant_combined_rosette<- FindClusters(subcluster_plant_combined_rosette, resolution = 0.4) 
+subcluster_plant_combined_rosette$rosette_leaf<-as.numeric(substr(colnames(subcluster_plant_combined_rosette),8,9))
+subcluster_plant_combined_rosette$day_treatment<-substr(colnames(subcluster_plant_combined_rosette),1,5)
+
+# Subset Data To Hold Only Final 3 Days of Assay
+subcluster_plant_combined_rosette_watered<-subcluster_plant_combined_rosette[,subcluster_plant_combined_rosette$day_treatment %in% c("D08_W","D07_W","D06_W","D05_W")]
+Idents(subcluster_plant_combined_rosette_watered)<-subcluster_plant_combined_rosette_watered$rosette_leaf
+
+subcluster_plant_combined_rosette_drought<-subcluster_plant_combined_rosette[,subcluster_plant_combined_rosette$day_treatment %in% c("D08_D","D07_D","D06_D","D05_D")] 
+Idents(subcluster_plant_combined_rosette_drought)<-subcluster_plant_combined_rosette_drought$rosette_leaf
+
+# Compute Which Leaf Stage Has Lower Representation in Each Treatment. Then Randomly Subset Rest of Leaf Stages By That Number
+outcome<-as.data.frame(matrix(NA, nrow=15, ncol=2))
+for (i in 1:15){outcome[i,]<- c(sum(subcluster_plant_combined_rosette_watered$rosette_leaf == i), sum(subcluster_plant_combined_rosette_drought$rosette_leaf == i))}
+outcome[,3]<-apply(outcome, 1, FUN = min) # row minimum
+
+watered_names<-colnames(subcluster_plant_combined_rosette_watered)
+watered_selected<-c()
+for (i in 1:15){
+value<-sample(subset(watered_names, as.numeric(substr(watered_names, 8,9)) == i),size = outcome[i,3], replace=F)
+watered_selected <- c(watered_selected, value)}
+subcluster_plant_combined_rosette_watered<- subcluster_plant_combined_rosette_watered[,watered_selected]
+
+drought_names<-colnames(subcluster_plant_combined_rosette_drought)
+drought_selected<-c()
+for (i in 1:15){
+value<-sample(subset(drought_names, as.numeric(substr(drought_names, 8,9)) == i),size = outcome[i,3], replace=F)
+drought_selected <- c(drought_selected, value)}
+subcluster_plant_combined_rosette_drought<- subcluster_plant_combined_rosette_drought[,drought_selected]
+
+# Generate UMAPs
+watered_umap<-as.data.frame(subcluster_plant_combined_rosette_watered[['umap']]@cell.embeddings)
+watered_umap$leaf_number<-as.numeric(substr(rownames(watered_umap),8,9))
+watered_plot<-ggplot(watered_umap, aes(x = UMAP_1, y = UMAP_2,color=leaf_number)) + geom_point(size=2) + scale_color_viridis() + geom_density_2d(color='red3',size=0.8) + theme(axis.line=element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(), axis.ticks=element_blank(),axis.title.x=element_blank(),axis.title.y=element_blank(),legend.position="none",panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),panel.grid.minor=element_blank(),plot.background=element_blank())
+ggsave("watered_plot.pdf", plot = watered_plot, width = 10, height = 8) # for server
+
+drought_umap<-as.data.frame(subcluster_plant_combined_rosette_drought[['umap']]@cell.embeddings)
+drought_umap$leaf_number<-as.numeric(substr(rownames(drought_umap),8,9))
+drought_plot<-ggplot(drought_umap, aes(x = UMAP_1, y = UMAP_2,color=leaf_number)) + geom_point(size=2) + scale_color_viridis() + geom_density_2d(color='red3',size=0.8) + theme(axis.line=element_blank(),axis.text.x=element_blank(),axis.text.y=element_blank(), axis.ticks=element_blank(),axis.title.x=element_blank(),axis.title.y=element_blank(),legend.position="none",panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),panel.grid.minor=element_blank(),plot.background=element_blank())
+ggsave("drought_plot.pdf", plot = drought_plot, width = 10, height = 8) # for server
+
+grid.arrange(watered_plot, drought_plot, nrow=1)
