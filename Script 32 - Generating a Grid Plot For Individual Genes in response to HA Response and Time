@@ -1,0 +1,21 @@
+grid_plot<-function(input, color){
+  gene_name<-input
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized, rownames(pseudo_bulk_normalized) == gene_name))
+  
+  Chosen_Gene<-Chosen_Gene[,-1]
+  Chosen_Gene[,3]<-as.numeric(substring(Chosen_Gene[,1],2,3)) # day
+  Chosen_Gene[,4]<-as.numeric(substring(Chosen_Gene[,1],7,9)) # treatment
+  colnames(Chosen_Gene)<-c('identity','value','day','treatment')
+  
+  Chosen_Gene<-Chosen_Gene[order(Chosen_Gene$day),]
+  Chosen_Gene<-Chosen_Gene[order(Chosen_Gene$treatment),]
+  
+  g1<- qplot(as.factor(treatment), as.factor(day), fill=value, data=Chosen_Gene, geom='tile')
+  g2<- g1 + scale_fill_gradient(low="grey99", high=color) 
+  g2+ theme_bw() +coord_flip()+  xlab("") + ylab("") + theme(text = element_text(size = 12)) +  theme(axis.title.y=element_blank(),axis.text.y=element_blank())  + theme(legend.position = 'none') 
+  }
+
+
+grid_plot("AT5G52310","grey10") # RD29a
+grid_plot("AT1G79040","grey10") # PSBR
+grid_plot("AT4G11660","grey10") # HSFB2B
