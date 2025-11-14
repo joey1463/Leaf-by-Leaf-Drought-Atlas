@@ -1,0 +1,92 @@
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+load("Hormone_Gene_List_Mesophyll.RData")
+load("Hormone_Gene_List_Epidermis.RData")
+load("Hormone_Gene_List_Vasculature.RData")
+
+marginal_distribution <- function(x, var, group) {
+  ggplot(x, aes_string(x = var, fill = group)) +
+    geom_histogram(bins = 30, alpha = 0.4, position = "identity") +
+    # geom_density(alpha = 0.4, size = 0.1) +
+    guides(fill = FALSE) +
+    theme_void() +
+    theme(plot.margin = margin()) + 
+    scale_fill_manual(values = c("mesophyll" = "springgreen3", "epidermis"="orange3", "vasculature"="darkorchid3"))
+  }
+
+plot_hormone_grid<-function(a){
+  
+    input_matrix<-rbind(Hormone_Gene_List_Mesophyll[[a]], Hormone_Gene_List_Epidermis[[a]], Hormone_Gene_List_Vasculature[[a]]) 
+    cell_type<- c(rep("mesophyll",length(Hormone_Gene_List_Mesophyll[[a]][,1])),
+                  rep("epidermis",length(Hormone_Gene_List_Epidermis[[a]][,1])),
+                  rep("vasculature",length(Hormone_Gene_List_Vasculature[[a]][,1])))
+    #cell_type<-ifelse(cell_type ==  "epidermis", "a_epidermis", cell_type)
+    plot_matrix<-cbind(input_matrix, cell_type)   
+    plot_matrix$Treatment_FC<-plot_matrix$Treatment_FC*-1
+    
+  for (i in 1:length(plot_matrix[,1])) {if ((plot_matrix[i,5] > 0) == TRUE) {plot_matrix[i,5]<-1}}
+  for (i in 1:length(plot_matrix[,1])) {if ((plot_matrix[i,5] < 0) == TRUE) {plot_matrix[i,5]<-(-1)}}
+  
+  plot_1<- ggplot(plot_matrix, aes(x=Development_FC, y=Treatment_FC,color = as.factor(avg_log2FC))) + geom_point(size=0.5) +  theme_bw() #+ theme(axis.ticks = element_blank(), axis.text.x = element_blank(), axis.text.y = element_blank()) 
+  plot_2<- plot_1 + labs(x = "") + labs(y = "") + geom_vline(xintercept=0, color = "black", size=0.5) +  geom_hline(yintercept=0, color = "black", size=0.5) + theme(legend.position = 'none') + scale_color_manual(values = c("1" = "tomato3", "-1"="steelblue3")) + theme(text = element_text(size = 14)) 
+  
+  x_hist <- marginal_distribution(plot_matrix, "Development_FC", "cell_type")
+  y_hist <- marginal_distribution(plot_matrix, "Treatment_FC", "cell_type") + coord_flip()
+  
+  aligned_x_hist <- align_plots(x_hist,plot_2, align = "v")[[1]]
+  aligned_y_hist <- align_plots(y_hist,plot_2, align = "h")[[1]]
+
+  plot_grid(aligned_x_hist, NULL, plot_2, aligned_y_hist, ncol = 2, nrow = 2, rel_heights = c(0.2, 1), rel_widths = c(1, 0.2))
+}
+
+# all tissues are layered into one graph. This includes all genes that were found in a significant intersect
+grid.arrange(plot_hormone_grid(3), #SA
+             plot_hormone_grid(5), #BR
+             plot_hormone_grid(2), #CK
+             plot_hormone_grid(1), #GA
+             plot_hormone_grid(6), # ACC
+             plot_hormone_grid(4), #AUX
+             plot_hormone_grid(8), # ABA
+             plot_hormone_grid(7), # MJ
+             ncol=2)
+
+# hormones for main figure
+grid.arrange(plot_hormone_grid(3), #SA
+             plot_hormone_grid(2), #CK
+             plot_hormone_grid(4), #AUX
+             plot_hormone_grid(8), #ABA
+             ncol=2)
+
+# Report Gene Lists
+a<-3
+input_matrix<-rbind(Hormone_Gene_List_Mesophyll[[a]], Hormone_Gene_List_Epidermis[[a]], Hormone_Gene_List_Vasculature[[a]]) 
+cell_type<- c(rep("mesophyll",length(Hormone_Gene_List_Mesophyll[[a]][,1])),
+                  rep("epidermis",length(Hormone_Gene_List_Epidermis[[a]][,1])),
+                  rep("vasculature",length(Hormone_Gene_List_Vasculature[[a]][,1])))
+plot_matrix<-cbind(input_matrix, cell_type)   
+plot_matrix$Treatment_FC<-plot_matrix$Treatment_FC*-1
+  
+
+plot_matrix["AT4G14400",] # ACD6 (SA example) # ACCELERATED CELL DEATH 6
+plot_matrix["AT3G49670",] # BAM2 (SA example) # BARELY ANY MERISTEM 2
+
+plot_matrix["AT1G20440",] # COR47 (BR example) # COLD-REGULATED 47
+plot_matrix["AT3G56020",] # EL41V (BR example) # RIBOSOMAL PROTEIN
+
+plot_matrix["AT1G70940",] # PIN3 (AUX example) # A regulator of auxin efflux and involved in differential growth
+plot_matrix["AT4G39090",] # RD19 (AUX example) # RESPONSIVE TO DEHYDRATION 19A
+
+plot_matrix["AT4G23750",] # CRF2 (CK example) # RESPONSIVE TO DEHYDRATION 19A
+plot_matrix["AT2G28950",] # ATEXP6 (CK example) # EXPANSIN A6
+
+plot_matrix["AT1G77760",] # NR1 (GA example) 
+plot_matrix["AT2G40610",] # EXPANSIN A8 (GA example) 
+
+plot_matrix["AT2G30620",] # HISTONE H1.2 (ACC Example)
+
+plot_matrix["AT1G70700",] # JAZ9 (MJ example) 
+plot_matrix["AT5G15970",] # KIN2 (MJ example)
+
+plot_matrix["AT2G17840",] # ERD7 (ABA example) # EARLY-RESPONSIVE TO DEHYDRATION 7
+plot_matrix["AT5G57050",] # ABI2 (ABA example) # ABA INSENSITIVE 2
+plot_matrix["AT1G01120",] # KCS1 (ABA example) 
+plot_matrix["AT3G53420",] # PIP2;1 (ABA example) 
