@@ -1,0 +1,51 @@
+library(Seurat)
+
+setwd("~/Desktop/")
+load("L3_mesophyll_subcluster_seedling.RData")
+
+DefaultAssay(object = subcluster_plant_combined_seedling) <- "RNA" 
+
+# Looking at Treatment
+subcluster_plant_combined_seedling$seedling_treatment<-substring(colnames(subcluster_plant_combined_seedling),7,9)
+
+colors<-c(rgb(1,0,0),rgb(0.8,0,0.2),rgb(0.6,0,0.3),rgb(0.5,0,0.5),rgb(0.4,0,0.6),rgb(0.3,0,0.7),rgb(0.2,0,0.8),rgb(0,0,1))
+
+visual_100<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "100"]
+pdf("visual_100.pdf")
+DimPlot(object = visual_100, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[8],8))
+dev.off()
+
+visual_090<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "090"]
+pdf("visual_090.pdf")
+DimPlot(object = visual_090, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[7],8))
+dev.off()
+
+visual_080<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "080"]
+pdf("visual_080.pdf")
+DimPlot(object = visual_080, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[6],8))
+dev.off()
+
+visual_070<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "070"]
+pdf("visual_070.pdf")
+DimPlot(object = visual_070, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[5],8))
+dev.off()
+
+visual_060<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "060"]
+pdf("visual_060.pdf")
+DimPlot(object = visual_060, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[4],8))
+dev.off()
+
+visual_050<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "050"]
+pdf("visual_050.pdf")
+DimPlot(object = visual_050, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[3],8))
+dev.off()
+
+visual_040<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "040"]
+pdf("visual_040.pdf")
+DimPlot(object = visual_040, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[2],8))
+dev.off()
+
+visual_030<-subcluster_plant_combined_seedling[,subcluster_plant_combined_seedling$seedling_treatment == "030"]
+pdf("visual_030.pdf")
+DimPlot(object = visual_030, reduction = "umap", raster=FALSE, label=FALSE, cols = rep(colors[1],8))
+dev.off()
