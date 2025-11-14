@@ -1,0 +1,33 @@
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+load("Hormone_Gene_List_Mesophyll.RData")
+load("Hormone_Gene_List_Epidermis.RData")
+load("Hormone_Gene_List_Vasculature.RData")
+
+
+hormone_pie<-function(a){
+    input_matrix<-rbind(Hormone_Gene_List_Mesophyll[[a]], Hormone_Gene_List_Epidermis[[a]], Hormone_Gene_List_Vasculature[[a]]) 
+    cell_type<- c(rep("mesophyll",length(Hormone_Gene_List_Mesophyll[[a]][,1])),
+                  rep("epidermis",length(Hormone_Gene_List_Epidermis[[a]][,1])),
+                  rep("vasculature",length(Hormone_Gene_List_Vasculature[[a]][,1])))
+    plot_matrix<-cbind(input_matrix, cell_type)   
+    plot_matrix$Treatment_FC<-plot_matrix$Treatment_FC*-1
+head(plot_matrix)
+# Create a data frame of counts
+df <- as.data.frame(table(plot_matrix$cell_type))
+colnames(df) <- c("type", "count")
+pie_out<-ggplot(df, aes(x = "", y = count, fill = type)) + geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") + scale_fill_manual(values = c("mesophyll" = "springgreen3", "epidermis"="orange3", "vasculature"="darkorchid3")) +
+  labs(title = NULL) + theme_void() + theme(legend.position = "none")
+pie_out
+}
+
+GA_pie<-hormone_pie(1)
+CK_pie<-hormone_pie(2)
+SA_pie<-hormone_pie(3)
+AUX_pie<-hormone_pie(4)
+BR_pie<-hormone_pie(5)
+ACC_pie<-hormone_pie(6)
+MJ_pie<-hormone_pie(7)
+ABA_pie<-hormone_pie(8)
+
+grid.arrange(GA_pie, CK_pie, SA_pie, AUX_pie, BR_pie, ACC_pie, MJ_pie, ABA_pie, ncol=2)
