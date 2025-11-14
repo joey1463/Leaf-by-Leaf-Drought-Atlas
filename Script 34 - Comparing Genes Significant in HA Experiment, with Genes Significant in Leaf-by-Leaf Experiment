@@ -1,0 +1,25 @@
+Correlation_List<-as.data.frame(subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC<0 & Developmental_Drought_Genes$Time_FC>0))
+
+for (i in 1:length(Correlation_List[,1])){
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized, rownames(pseudo_bulk_normalized) %in% rownames(Correlation_List)[i]))
+  Chosen_Gene<-Chosen_Gene[,-1]
+  rownames(Chosen_Gene)<-Chosen_Gene[,1]
+  Chosen_Gene<-cbind(seedling_sizes/1000, Chosen_Gene) 
+  Correlation_List[i,5:6]<-c(as.numeric(cor.test(Chosen_Gene$value, Chosen_Gene$size)[3]),as.numeric(cor.test(Chosen_Gene$value, Chosen_Gene$size)[4]))}
+Correlation_List$V5<-p.adjust(Correlation_List$V5, method='fdr')
+
+
+Rosette_and_Seedling<-merge(Correlation_List, Two_Model_Output_Sig,by='row.names')
+rownames(Rosette_and_Seedling)<-Rosette_and_Seedling[,1]
+Rosette_and_Seedling<-Rosette_and_Seedling[,-1]
+
+Rosette_and_Seedling<-subset(Rosette_and_Seedling, Rosette_and_Seedling$Treatment_FC<0) 
+Rosette_and_Seedling$logP<- -log(Rosette_and_Seedling$Treatment_p,10)
+Rosette_and_Seedling$logP_correlation<- -log(Rosette_and_Seedling$V5,10)
+
+p1<-ggplot(data=Rosette_and_Seedling, aes(x=logP_correlation, y=logP)) + geom_point(size=2) + theme_bw() + theme(panel.border = element_rect(fill=NA, colour = "black", size=0.5)) +theme(legend.position = 'none') 
+p2<- p1 + theme(axis.text=element_text(size=10),axis.title=element_text(size=10))+ xlab("") + ylab("") 
+p2
+
+Correlation_List["AT5G49730",] # FRO6
+Two_Model_Output_Sig["AT5G49730",]
