@@ -1,0 +1,43 @@
+
+chosen_cluster<-'L3_mesophyll'
+chosen_cluster<-'L3_epidermis'
+chosen_cluster<-'L3_phloem'
+chosen_cluster<-'L3_xylem'
+chosen_cluster<-'L3_bundle_sheath'
+chosen_cluster<-'L3_guard'
+
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_pseudo_bulk_normalized_seedling.RData",sep=''))
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_multivariate_list_seedling.RData",sep=''))
+
+dim(Multivariate_List[[1]]) # Three_Model_Final
+dim(Multivariate_List[[2]]) # Development_Real_Final
+dim(Multivariate_List[[3]]) # Treatment_Final
+
+Developmental_Drought_Genes<-Multivariate_List[[1]]
+Development_Genes<-Multivariate_List[[2]]
+Drought_Genes<-Multivariate_List[[3]]
+
+# Change Drought Sign
+Developmental_Drought_Genes$Drought_FC<-Developmental_Drought_Genes$Drought_FC*-1
+Drought_Genes$log2FoldChange<-Drought_Genes$log2FoldChange*-1
+
+summary(Developmental_Drought_Genes$Time_FC>0)
+summary(Development_Genes$log2FoldChange>0)
+
+# Single Gene Line Plot 
+line_plot<-function(chosen_gene){
+  Chosen_Gene<-melt(subset(pseudo_bulk_normalized, rownames(pseudo_bulk_normalized) == chosen_gene))
+  Chosen_Gene<-Chosen_Gene[,-1]
+  Chosen_Gene[,3]<-as.numeric(substring(Chosen_Gene[,1],2,3)) # day
+  Chosen_Gene[,4]<-as.numeric(substring(Chosen_Gene[,1],7,9)) # treatment
+  colnames(Chosen_Gene)<-c('identity','value','day','treatment')
+  ggplot(data=Chosen_Gene, aes(x=day, y=value, group=treatment)) + geom_point(size=1,aes(color=(treatment)))  + theme_bw() + scale_colour_gradientn(colours = colorRampPalette(c("red","blue"))(n = 100)) + theme(legend.position = 'none') + xlab("") +ylab("") +  theme(axis.text=element_text(size=15))  + geom_smooth(method = "gam", formula = y ~ poly(x, 2), level=0.99, aes(color=treatment, fill=treatment), se=FALSE) + scale_x_continuous(breaks=c(0:11))
+}
+
+line_plot("AT5G49730") # FRO6
+line_plot("AT4G28080") # TSS
+
+line_plot("AT5G52310") # RD29A
+line_plot("AT1G79040") # PSBR
+
+line_plot("AT4G04340") # OSCA1
