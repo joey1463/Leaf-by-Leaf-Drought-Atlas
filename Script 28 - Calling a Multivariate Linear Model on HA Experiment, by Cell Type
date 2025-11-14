@@ -1,0 +1,93 @@
+library(Seurat)
+library(DESeq2)
+library(EDASeq)
+
+Call_Seedling_Linear_Model<-function(subcluster_plant_combined_seedling, chosen_cluster){
+
+# Read Data In
+DefaultAssay(object = subcluster_plant_combined_seedling) <- "RNA" 
+subcluster_plant_combined_seedling$seedling_time<-substring(colnames(subcluster_plant_combined_seedling),1,9)
+Idents(subcluster_plant_combined_seedling)<-subcluster_plant_combined_seedling$seedling_time
+
+# Pseudo Bulk Data
+pseudobulk<-AggregateExpression(object = subcluster_plant_combined_seedling, slot = "counts", group.by = "seedling_time")
+pseudobulk<-as.data.frame(pseudobulk[[1]])
+pseudobulk<-pseudobulk[,!substr(colnames(pseudobulk),7,7) == "L"] # remove control leaves
+pseudobulk<-pseudobulk[,as.numeric(substr(colnames(pseudobulk),2,3)) %in% c(1:11)] # remove re-water control, as should be tested seperately 
+maxes<-rowSums(pseudobulk)
+pseudobulk<-pseudobulk[maxes>200,] 
+colmaxes<-colSums(pseudobulk)
+pseudobulk<-pseudobulk[,colmaxes>(3000)] 
+
+# Set Factors
+Conditions<-data.frame(time=as.numeric(substring(colnames(pseudobulk),2,3)),
+                       drought=as.numeric(substring(colnames(pseudobulk),7,9)),
+                       row.names = colnames(pseudobulk))
+
+# Run Statistic
+cut_off<-0.01
+DEmat<-DESeq(DESeqDataSetFromMatrix(countData = pseudobulk,colData = Conditions, design = ~ time + drought)) 
+pseudo_bulk_normalized<-counts(estimateSizeFactors(DEmat), normalized=TRUE)
+barplot(colSums(pseudo_bulk_normalized))
+
+# Treatment + Age
+Two_Model_Output<-as.data.frame(cbind(results(DESeq(DEmat, test='LRT', reduced = ~ drought))[,c(2,6)], # time
+                                      results(DESeq(DEmat, test='LRT', reduced = ~ time))[,c(2,6)])) # drought
+colnames(Two_Model_Output)<-c('Time_FC','Time_p','Drought_FC','Drought_p')
+rownames(Two_Model_Output)<-rownames(pseudo_bulk_normalized) 
+    
+# Time
+DEmat<-DESeq(DESeqDataSetFromMatrix(countData =pseudobulk,colData = Conditions, design = ~ time)) 
+Time_Output<-results(DESeq(DEmat, test='LRT', reduced = ~ 1))[,c(2,6)]
+    
+# Drought
+DEmat<-DESeq(DESeqDataSetFromMatrix(countData =pseudobulk,colData = Conditions, design = ~ drought)) 
+Drought_Output<-results(DESeq(DEmat, test='LRT', reduced = ~ 1))[,c(2,6)]
+
+# Correct FC Values
+Two_Model_Output$Time_FC<-Time_Output$log2FoldChange
+Two_Model_Output$Drought_FC<-Drought_Output$log2FoldChange
+    
+# Bin Genes
+Two_Model_Output[is.na(Two_Model_Output)] <- 1
+Two_Model_Output_Sig<-subset(Two_Model_Output, Two_Model_Output$Time_p<cut_off & Two_Model_Output$Drought_p<cut_off)
+Two_Model_Output_Not_Sig<-subset(Two_Model_Output, Two_Model_Output$Time_p>=cut_off | Two_Model_Output$Drought_p>=cut_off)
+Two_Model_Output_Not_Sig_Time_Leaning<-subset(Two_Model_Output_Not_Sig, Two_Model_Output_Not_Sig$Time_p < Two_Model_Output_Not_Sig$Drought_p)
+Two_Model_Output_Not_Sig_Drought_Leaning<-subset(Two_Model_Output_Not_Sig, Two_Model_Output_Not_Sig$Time_p > Two_Model_Output_Not_Sig$Drought_p)
+
+Time_Output_Sig<-subset(Time_Output, Time_Output$padj<cut_off)
+Time_Output_Sig<- Time_Output_Sig[!(rownames(Time_Output_Sig) %in% rownames(Two_Model_Output_Sig)), ]
+Time_Output_Sig<-subset(Time_Output_Sig, rownames(Time_Output_Sig) %in% rownames(Two_Model_Output_Not_Sig_Time_Leaning))
+  
+Drought_Output_Sig<- subset(Drought_Output, Drought_Output$padj<cut_off)
+Drought_Output_Sig<- Drought_Output_Sig[!(rownames(Drought_Output_Sig) %in% rownames(Two_Model_Output_Sig)), ]
+Drought_Output_Sig<- subset(Drought_Output_Sig, rownames(Drought_Output_Sig) %in% rownames(Two_Model_Output_Not_Sig_Drought_Leaning))
+
+Multivariate_List<-list(Two_Model_Output_Sig, Time_Output_Sig, Drought_Output_Sig)
+
+save(Multivariate_List, file = paste('L3',paste(chosen_cluster, sep="", collapse=""),"multivariate_list_seedling.RData",sep='_'))
+save(pseudo_bulk_normalized, file = paste('L3',paste(chosen_cluster, sep="", collapse=""),"pseudo_bulk_normalized_seedling.RData",sep='_'))}
+
+# Mesophyll
+load("L3_mesophyll_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "mesophyll")
+
+# Epidermis
+load("L3_epidermis_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "epidermis")
+
+# Guard
+load("L3_guard_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "guard")
+
+# Phloem
+load("L3_phloem_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "phloem")
+
+# Bundle Sheath
+load("L3_bundle_sheath_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "bundle_sheath")
+
+# Xylem
+load("L3_xylem_subcluster_seedling.RData")
+Call_Seedling_Linear_Model(subcluster_plant_combined_seedling, chosen_cluster = "xylem")
