@@ -1,0 +1,43 @@
+# Seedling HA Genes
+
+Dev_Induced_Drought_Induced_Genes<-subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC>0 & Developmental_Drought_Genes$Time_FC>0)
+Dev_Induced_Drought_Repressed_Genes<-subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC<0 & Developmental_Drought_Genes$Time_FC>0)
+
+Dev_Repressed_Drought_Induced_Genes<-subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC>0 & Developmental_Drought_Genes$Time_FC<0)
+Dev_Repressed_Drought_Repressed_Genes<-subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC<0 & Developmental_Drought_Genes$Time_FC<0)
+
+
+# Leaf-by-Leaf Genes 
+
+Leaf_Dev_Induced_Drought_Induced<-subset(Two_Model_Output_Sig, Two_Model_Output_Sig$Development_FC>0 &Two_Model_Output_Sig$Treatment_FC>0)
+Leaf_Dev_Induced_Drought_Repressed_Genes<-subset(Two_Model_Output_Sig, Two_Model_Output_Sig$Development_FC>0 &Two_Model_Output_Sig$Treatment_FC<0)
+Leaf_Dev_Repressed_Drought_Induced<-subset(Two_Model_Output_Sig, Two_Model_Output_Sig$Development_FC<0 &Two_Model_Output_Sig$Treatment_FC>0)
+Leaf_Dev_Repressed_Drought_Repressed<-subset(Two_Model_Output_Sig, Two_Model_Output_Sig$Development_FC<0 &Two_Model_Output_Sig$Treatment_FC<0)
+
+
+
+# Fisher Test
+fisher_test<-function(list_1, list_2){
+
+Background<-rownames(pseudo_bulk_normalized)
+
+list_1<-rownames(list_1)
+list_2<-rownames(list_2)
+
+intersect<-subset(list_1, list_1 %in% list_2) 
+list_1_setdiff<-setdiff(list_1,intersect) 
+list_2_setdiff<-setdiff(list_2,intersect) 
+
+Background<-setdiff(Background,c(intersect,list_1_setdiff,list_2_setdiff)) 
+matrix_to_test<-matrix(c(length(intersect),length(list_1_setdiff),length(list_2_setdiff),length(Background)),2,2) 
+p_value<-as.numeric(fisher.test(matrix_to_test, alternative='greater')[1])
+c(p_value, length(intersect))
+}
+
+fisher_test(Dev_Induced_Drought_Induced_Genes, Leaf_Dev_Induced_Drought_Induced) 
+fisher_test(Dev_Induced_Drought_Repressed_Genes, Leaf_Dev_Induced_Drought_Repressed_Genes) 
+
+Dev_Up_Dro_Up<-merge(Dev_Induced_Drought_Induced_Genes, Leaf_Dev_Induced_Drought_Induced, by='row.names')
+Dev_Up_Dro_Down<-merge(Dev_Induced_Drought_Repressed_Genes, Leaf_Dev_Induced_Drought_Repressed_Genes, by='row.names') 
+Dev_Down_Dro_Up<-merge(Dev_Repressed_Drought_Induced_Genes, Leaf_Dev_Repressed_Drought_Induced, by='row.names')
+Dev_Down_Dro_Down<-merge(Dev_Repressed_Drought_Repressed_Genes, Leaf_Dev_Repressed_Drought_Repressed, by='row.names') 
