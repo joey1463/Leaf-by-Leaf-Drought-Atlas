@@ -1,0 +1,12 @@
+plot_matrix_average<-subset(plot_matrix, plot_matrix$color==1)
+
+Chosen_Gene<-cbind(seedling_sizes, plot_matrix_average)
+Chosen_Gene$mmArea<- Chosen_Gene$size * (14400 / 3610000)
+Chosen_Gene<-Chosen_Gene[,-1]
+
+p1<-ggplot(data=Chosen_Gene, aes(x=expression, y=mmArea)) + geom_point(size=3,aes(color=as.factor(dose))) + theme_bw() + theme(panel.border = element_rect(fill=NA, colour = "black", size=0.5)) +theme(legend.position = 'none') 
+p2<- p1 + theme(axis.text=element_text(size=10),axis.title=element_text(size=10))+ xlab("") + ylab("") + scale_color_manual(values = c(rgb(1,0,0),rgb(0.8,0,0.2),rgb(0.6,0,0.3),rgb(0.5,0,0.5),rgb(0.4,0,0.6),rgb(0.3,0,0.7),rgb(0.2,0,0.8),rgb(0,0,1)))
+p2 
+
+cor.test(Chosen_Gene$expression, Chosen_Gene$size)
+summary(lm(Chosen_Gene$size~Chosen_Gene$value))
