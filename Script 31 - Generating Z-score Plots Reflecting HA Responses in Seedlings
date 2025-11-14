@@ -1,0 +1,25 @@
+# Choose List  
+Input_List<-as.data.frame(subset(Drought_Genes, Drought_Genes$log2FoldChange>0))
+Input_List<-as.data.frame(subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC>0 & Developmental_Drought_Genes$Time_FC>0))
+Input_List<-as.data.frame(subset(Developmental_Drought_Genes, Developmental_Drought_Genes$Drought_FC<0 & Developmental_Drought_Genes$Time_FC>0))
+
+
+# Z-Score Plot
+Input_List<-as.data.frame(subset(pseudo_bulk_normalized, rownames(pseudo_bulk_normalized) %in% rownames(Input_List)))
+Z <- as.data.frame(t(scale(t(Input_List))))
+Z_average<-colSums(Z)/length(Z[,1])
+Z<-rbind(Z, Z_average)
+rownames(Z)[length(Z[,1])]<-"average"
+plot_matrix<-melt(t(Z))
+factored<-as.character(plot_matrix[,1])
+time<-substr(factored,1,3)
+time<-str_remove(time, "D") 
+time<-as.numeric(str_remove(time, "_"))
+plot_matrix[,4]<-time
+dose<-substr(factored,7,10)
+plot_matrix[,5]<-dose
+plot_matrix[,6]<-as.numeric(plot_matrix[,2] == 'average')
+colnames(plot_matrix)<-c("sample","gene","expression","time","dose","color")
+plot_matrix$gene<-as.character(plot_matrix$gene)
+colors<-c(rgb(1,0,0),rgb(0.8,0,0.2),rgb(0.6,0,0.3),rgb(0.5,0,0.5),rgb(0.4,0,0.6),rgb(0.3,0,0.7),rgb(0.2,0,0.8),rgb(0,0,1))
+ggplot(data=plot_matrix, aes(x=time, y=expression, group=as.factor(dose))) + geom_smooth(method = "lm", se=TRUE, level=0.99, formula = y ~ poly(x,1), aes(fill=as.factor(dose), color=as.factor(dose))) +  theme_bw() + scale_color_manual(values = colors) + scale_fill_manual(values=colors) +  xlab("") + ylab("") + theme(legend.position = "none") + scale_x_continuous(breaks=c(0:11)) + theme(axis.text=element_text(size=10),axis.title=element_text(size=10))
