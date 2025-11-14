@@ -1,0 +1,169 @@
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+chosen_cluster<-'L3_mesophyll'
+chosen_cluster<-'L3_whole_epidermis'
+chosen_cluster<-'L3_whole_vasculature'
+
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_hormone_response_list_rosette.RData",sep=''))
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_multivariate_list_rosette.RData",sep=''))
+load(paste(paste(chosen_cluster, sep="", collapse=""),"_two_model_output_rosette_2-way.RData",sep=''))
+
+# Create Expression Groups
+Two_Model_Output_Sig<-Multivariate_List[[1]]
+Development_Output_Sig<-Multivariate_List[[2]]
+Treatment_Output_Sig<-Multivariate_List[[3]]
+Treatment_Output_Sig$log2FoldChange<-Treatment_Output_Sig$log2FoldChange*-1 # need to change direction for drought response (as linear model works on declining field capacity)
+
+    
+# Subset further
+cut_off<-0.01 
+fold_change<-0 # no fold change threshold
+Two_Model_Output_Sig<-subset(Two_Model_Output_Sig,Two_Model_Output_Sig$Development_p<cut_off & Two_Model_Output_Sig$Treatment_p<cut_off & abs(Two_Model_Output_Sig$Development_FC)>fold_change)
+    
+Development_Output_Sig<-as.data.frame(subset(Development_Output_Sig, Development_Output_Sig$padj<cut_off & abs(Development_Output_Sig$log2FoldChange)>fold_change))
+colnames(Development_Output_Sig)<-c("Development_FC","Development_p")
+    
+Treatment_Output_Sig<-as.data.frame(subset(Treatment_Output_Sig, Treatment_Output_Sig$padj<cut_off))
+colnames(Treatment_Output_Sig)<-c("Treatment_FC","Treatment_p")
+    
+Development_Genes_Full<-rbind(Development_Output_Sig, Two_Model_Output_Sig[,1:2])
+Drought_Genes_Full<-rbind(Treatment_Output_Sig, Two_Model_Output_Sig[,3:4])
+
+# Refine Hormone Gene List (Remove genes that respond to more than 2 hormones)
+hormone_genes<-as.data.frame(table(c( rownames(Hormone_Response_List[[1]]),
+                                      rownames(Hormone_Response_List[[2]]),
+                                      rownames(Hormone_Response_List[[3]]),
+                                      rownames(Hormone_Response_List[[4]]),
+                                      rownames(Hormone_Response_List[[5]]),
+                                      rownames(Hormone_Response_List[[6]]),
+                                      rownames(Hormone_Response_List[[7]]),
+                                      rownames(Hormone_Response_List[[8]]))))
+hormone_genes<-subset(hormone_genes, hormone_genes[,2]<3)
+to_keep<-as.character(hormone_genes[,1])
+
+# Perform Intersection and Produce Table
+Fischer_Concurrent_Discordant_forDevelopment<-function(hormone_list,model_list, result){
+    
+    list_1<-subset(hormone_list, rownames(hormone_list) %in% to_keep)
+    #list_1<-hormone_list
+    list_2<-model_list
+  
+    list_1_Up<-rownames(subset(list_1, list_1$avg_log2FC>0)) # Hormone
+    list_1_Down<-rownames(subset(list_1, list_1$avg_log2FC<0)) # Hormone
+    
+    list_2_Up<-rownames(subset(list_2, list_2$Development_FC>0)) # Development
+    list_2_Down<-rownames(subset(list_2, list_2$Development_FC<0)) # Development
+
+    Background<-rownames(plant_combined)
+
+    # concurrent
+    intersect_up<-subset(list_1_Up, list_1_Up %in% list_2_Up) # concurrent
+    intersect_down<-subset(list_1_Down, list_1_Down %in% list_2_Down) # concurrent
+    intersect_concurrent<-c(intersect_up,intersect_down)
+    list_1_setdiff<-setdiff(rownames(list_1),intersect_concurrent) 
+    list_2_setdiff<-setdiff(rownames(list_2),intersect_concurrent) 
+    Background<-setdiff(Background,c(intersect_concurrent,list_1_setdiff,list_2_setdiff)) 
+    matrix_to_test<-matrix(c(length(intersect_concurrent),length(list_1_setdiff),length(list_2_setdiff),length(Background)),2,2) 
+    p_value_concurrent<-as.numeric(fisher.test(matrix_to_test, alternative='greater')[1])
+
+    # discordant
+    intersect_up<-subset(list_1_Up, list_1_Up %in% list_2_Down) 
+    intersect_down<-subset(list_1_Down, list_1_Down %in% list_2_Up) 
+    intersect_discordant<-c(intersect_up,intersect_down)
+    list_1_setdiff<-setdiff(rownames(list_1),intersect_discordant) 
+    list_2_setdiff<-setdiff(rownames(list_2),intersect_discordant) 
+    Background<-setdiff(Background,c(intersect_discordant,list_1_setdiff,list_2_setdiff)) 
+    matrix_to_test<-matrix(c(length(intersect_discordant),length(list_1_setdiff),length(list_2_setdiff),length(Background)),2,2) 
+    p_value_discordant<-as.numeric(fisher.test(matrix_to_test, alternative='greater')[1])
+
+    if (result == 'statistic') {output<-c(length(intersect_concurrent),length(intersect_discordant),p_value_concurrent, p_value_discordant)}
+    if (result == 'gene_list') {output<-c(intersect_concurrent, intersect_discordant)}
+    output}
+
+Fischer_Concurrent_Discordant_forTreatment<-function(hormone_list,model_list, result){
+    
+    list_1<-subset(hormone_list, rownames(hormone_list) %in% to_keep)
+    #list_1<-hormone_list
+    list_2<-model_list
+  
+    list_1_Up<-rownames(subset(list_1, list_1$avg_log2FC>0)) # Hormone
+    list_1_Down<-rownames(subset(list_1, list_1$avg_log2FC<0)) # Hormone
+    
+    list_2_Up<-rownames(subset(list_2, list_2$Treatment_FC<0)) # Treatment
+    list_2_Down<-rownames(subset(list_2, list_2$Treatment_FC>0)) # Treatment
+    
+    Background<-rownames(plant_combined)
+
+    # concurrent
+    intersect_up<-subset(list_1_Up, list_1_Up %in% list_2_Up) # concurrent
+    intersect_down<-subset(list_1_Down, list_1_Down %in% list_2_Down) # concurrent
+    intersect_concurrent<-c(intersect_up,intersect_down)
+    list_1_setdiff<-setdiff(rownames(list_1),intersect_concurrent) 
+    list_2_setdiff<-setdiff(rownames(list_2),intersect_concurrent) 
+    Background<-setdiff(Background,c(intersect_concurrent,list_1_setdiff,list_2_setdiff)) 
+    matrix_to_test<-matrix(c(length(intersect_concurrent),length(list_1_setdiff),length(list_2_setdiff),length(Background)),2,2) 
+    p_value_concurrent<-as.numeric(fisher.test(matrix_to_test, alternative='greater')[1])
+    
+    # discordant
+    intersect_up<-subset(list_1_Up, list_1_Up %in% list_2_Down) # concurrent
+    intersect_down<-subset(list_1_Down, list_1_Down %in% list_2_Up) # concurrent
+    intersect_discordant<-c(intersect_up,intersect_down)
+    list_1_setdiff<-setdiff(rownames(list_1),intersect_discordant) 
+    list_2_setdiff<-setdiff(rownames(list_2),intersect_discordant) 
+    Background<-setdiff(Background,c(intersect_discordant,list_1_setdiff,list_2_setdiff)) 
+    matrix_to_test<-matrix(c(length(intersect_discordant),length(list_1_setdiff),length(list_2_setdiff),length(Background)),2,2) 
+    p_value_discordant<-as.numeric(fisher.test(matrix_to_test, alternative='greater')[1])
+    
+    if (result == 'statistic') {output<-c(length(intersect_concurrent),length(intersect_discordant),p_value_concurrent, p_value_discordant)}
+    if (result == 'gene_list') {output<-c(intersect_concurrent, intersect_discordant)}
+    output}
+
+Hormone_output<-matrix(NA,nrow=8,ncol=8)
+for (i in 1:8){
+Hormone_output[i,]<-c(Fischer_Concurrent_Discordant_forDevelopment(Hormone_Response_List[[i]], Development_Genes_Full, 'statistic'),
+                      Fischer_Concurrent_Discordant_forTreatment(Hormone_Response_List[[i]], Drought_Genes_Full, 'statistic'))  
+               }
+
+Hormone_output_numbers<-Hormone_output[,c(1,2,5,6)]
+Hormone_output_p<-Hormone_output[,c(3,4,7,8)]
+Hormone_output_fdr<-p.adjust(Hormone_output_p, method = 'fdr')
+Hormone_output_fdr<-matrix(Hormone_output_fdr,nrow=8,ncol=4)
+Hormone_output_fdr<--log(Hormone_output_fdr,10)
+for (i in 1:length(Hormone_output_fdr)) {if ((Hormone_output_fdr[i] < 1.30103) == TRUE) {Hormone_output_fdr[i]<-NA}} 
+Hormone_output<-cbind(Hormone_output_numbers, Hormone_output_fdr)
+rownames(Hormone_output)<-c("GA","CK","SA","AUX","BR","ACC","MJ","ABA")
+colnames(Hormone_output)<-c("development_concurrent","development_discordant","drought_concurrent","drought_discordant",
+                             "development_concurrent_pval","development_discordant_pval","drought_concurrent_pval","drought_discordant_pval")
+Hormone_output
+Hormone_output[is.na(Hormone_output)] <- 0
+
+# Get Gene Names And Expression Direction of Those Within Significant Intersects
+Hormone_Gene_List<-list(NA)
+for (i in 1:8){
+  
+  gene_output_1<-NA
+  gene_output_2<-NA
+  
+  if ((Hormone_output[i,5:6][1]>0 | Hormone_output[i,5:6][2]>0) == TRUE)   {gene_output_1<-Fischer_Concurrent_Discordant_forDevelopment(Hormone_Response_List[[i]], Development_Genes_Full, 'gene_list')}
+  if ((Hormone_output[i,7:8][1]>0 | Hormone_output[i,7:8][2]>0) == TRUE)   {gene_output_2<-Fischer_Concurrent_Discordant_forTreatment(Hormone_Response_List[[i]], Drought_Genes_Full, 'gene_list')}
+  
+  hormone_gene_list<-unique(c(gene_output_1, gene_output_2))
+  hormone_gene_list<-hormone_gene_list[!is.na(hormone_gene_list)]
+  hormone_gene_list<-subset(Two_Model_Output, rownames(Two_Model_Output) %in% hormone_gene_list) 
+  Hormone_Gene_List_2<-merge(hormone_gene_list, Hormone_Response_List[[i]], by='row.names')
+  rownames(Hormone_Gene_List_2)<-Hormone_Gene_List_2[,1]
+  Hormone_Gene_List_2<-Hormone_Gene_List_2[,c(2:5,7,11)]
+  Hormone_Gene_List[[i]]<-Hormone_Gene_List_2 
+}
+
+# Required To Do Each One Seperately, Depending on Whats Loaded In
+Hormone_Gene_List_Mesophyll<-Hormone_Gene_List
+Hormone_Gene_List_Epidermis<-Hormone_Gene_List
+Hormone_Gene_List_Vasculature<-Hormone_Gene_List
+
+setwd("~/Desktop/Salk/Project - Hormones and Drought/R Files")
+save(Hormone_Gene_List_Mesophyll, file = "Hormone_Gene_List_Mesophyll.RData")
+save(Hormone_Gene_List_Epidermis, file = "Hormone_Gene_List_Epidermis.RData")
+save(Hormone_Gene_List_Vasculature, file = "Hormone_Gene_List_Vasculature.RData")
+
+#setwd("~/Desktop")
+#write.table(Hormone_output,file="Hormone_output.txt",quote=F,sep="\t")
