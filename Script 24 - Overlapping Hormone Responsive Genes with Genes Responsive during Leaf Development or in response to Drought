@@ -28,6 +28,8 @@ colnames(Treatment_Output_Sig)<-c("Treatment_FC","Treatment_p")
 Development_Genes_Full<-rbind(Development_Output_Sig, Two_Model_Output_Sig[,1:2])
 Drought_Genes_Full<-rbind(Treatment_Output_Sig, Two_Model_Output_Sig[,3:4])
 
+Hormone_Response_List <- lapply(Hormone_Response_List, function(df) {subset(df, p_val_adj <= 0.05)})
+
 # Refine Hormone Gene List (Remove genes that respond to more than 2 hormones)
 hormone_genes<-as.data.frame(table(c( rownames(Hormone_Response_List[[1]]),
                                       rownames(Hormone_Response_List[[2]]),
