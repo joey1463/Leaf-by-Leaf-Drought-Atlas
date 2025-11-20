@@ -21,7 +21,7 @@ hormone_genes<-subset(hormone_genes, hormone_genes[,2]<3)
 to_keep<-as.character(hormone_genes[,1])
 
 # Significance threshold and removing 3 or more hormone responder genes
-for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], Hormone_Response_List[[i]]$p_val_adj<0.1)}
+for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], Hormone_Response_List[[i]]$p_val_adj<0.05)}
 for (i in 1:8) {Hormone_Response_List[[i]]<-subset(Hormone_Response_List[[i]], rownames(Hormone_Response_List[[i]]) %in% to_keep)}
 
 Hormone_Response<-NA
